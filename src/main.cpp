@@ -1,44 +1,94 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
+#include "Rendering/Renderer.h"
+#include "Rendering/GUIRenderer.h"
+#include "Simulation/Coccus.h" 
+
 #include <iostream>
-#include "Simulation/Coccus.cpp"
-#include "Rendering/Renderer.cpp"
-#include "Simulation/Coccus.cpp"
+#include <vector>
+#include <memory>
+#include <thread>
+#include <chrono>
+#include <functional> 
+
+void setupImGUI(GLFWwindow* window){
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 130");
+}
+
+void cleanupGUI(){
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+}
 
 int main() {
-    //***********************************************************************
-    //Tutaj tworzymy nasze obiekty
-    // Tworzymy obiekt Renderer, który będzie odpowiadał za renderowanie okna OpenGL
-    Renderer renderer;
 
-    // Tworzymy bakterię na pozycji (100, 100)
-    Coccus bacteria(100, 100);
+    //*****************************************************/
+    auto previousTime = std::chrono::steady_clock::now();
+    int frameCount = 0;
+    float elapsedTime = 0.0f;
+
+    // Tworzymy obiekty
+    Renderer renderer;
+    GUIRenderer guiRenderer;
+    setupImGUI(renderer.getWindow());
+
+    //*****************************************************/
+
     //***********************************************************************
 
     // Główna pętla programu
     while (!glfwWindowShouldClose(renderer.getWindow())) {
-        // Przetwarzamy zdarzenia (np. wejście z klawiatury)
+        //**** Mechanizm FPS ****/
+        auto currentTime = std::chrono::steady_clock::now();
+        std::chrono::duration<float> deltaTimeDuration = currentTime - previousTime;
+        previousTime = currentTime;
+
+        float dt = deltaTimeDuration.count();
+        elapsedTime += dt;
+        frameCount++;
+
+        if (elapsedTime >= 1.0f) {
+            std::cout << "FPS: " << frameCount << std::endl; 
+            frameCount = 0;
+            elapsedTime = 0.0f;
+        }
+        //***********************/
+
+        // Przetwarzanie zdarzeń (np. wejście z klawiatury)
         glfwPollEvents();
 
-        //***********************************************************************
-        //Tutaj możemy wykonywać operacje na naszych obiektach: renderowanie, modyfikacja pozycji, zdrowia itd
+        // Rozpoczęcie klatki ImGUI
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
 
-        // Renderujemy bakterie
-        renderer.render(bacteria);
+        // Render elementów UI
+        guiRenderer.render();
 
-        // Zwiększamy timer bakterii
-        bacteria.update(0.1f);
+        //Renderowanie klatek 
+        renderer.beginFrame();
 
-        // Zmiana zdrowia bakterii w zależności od czasu (przykład)
-        if (bacteria.getHealth() > 0.0f) {
-            bacteria.applyAntibiotic(0.01f); // Aplikujemy antybiotyk co klatkę
-        }
+        // Renderowanie klatki ImGUI
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        renderer.endFrame();
+
         //***********************************************************************
     }
 
-    // to przeniesc do renderera
-	//freeOpenGLProgram(window);
-	//glfwDestroyWindow(window); 
+    cleanupGUI();
     glfwTerminate();
     return 0;
 }

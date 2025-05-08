@@ -1,93 +1,89 @@
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include "../Simulation/Coccus.cpp" 
-#include <iostream>
+#include "Renderer.h" 
+#include "../Simulation/IBacteria.h" 
 
-class Renderer {
-private:
-    GLFWwindow* window;
+// Inicjalizacje procedur, obslugi klawiatury, bledow, itd - wszystko to, co wykonujemy raz na początku programu
+void Renderer::setupInitialProcedures() {
+    // Ustawienie ortograficznej macierzy projekcji
+    // Mapuje współrzędne świata (0,0) do (WINDOW_WIDTH, WINDOW_HEIGHT) na okno
+    // (0,0) jest w lewym górnym rogu
+    glOrtho(0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, -1, 1);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); 
+    glEnable(GL_BLEND); 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
 
-    //***********************************************************************
-    // Inicjalizacje procedur, obslugi klawiatury, bledow, itd - wszystko to, co wykonujemy raz na początku programu
-    void setupInitialProcedures() {
-        glOrtho(0, 800, 600, 0, -1, 1);
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);  
+//Inicjalizacja środowiska OpenGL oraz okna programu
+void Renderer::initOpenGL() {
+    if (!glfwInit()) {
+        std::cerr << "Failed to initialize GLFW" << std::endl;
+        exit(EXIT_FAILURE);
     }
-    //***********************************************************************
 
-    //Inicjalizacja środowiska OpenGL oraz okna programu
-    void initOpenGL() {
-        // Inicjalizacja GLFW
-        if (!glfwInit()) {
-            std::cerr << "Failed to initialize GLFW" << std::endl;
-            exit(EXIT_FAILURE);
+    // Tworzymy okno i kontekst OpenGL
+    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "PetriDish Simulation", nullptr, nullptr);
+    if (!window) {
+        std::cerr << "Failed to open GLFW window" << std::endl;
+        glfwTerminate();
+        exit(EXIT_FAILURE);
+    }
+
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(1); 
+
+    if (glewInit() != GLEW_OK) {
+        std::cerr << "Failed to initialize GLEW" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    setupInitialProcedures();
+}
+
+Renderer::Renderer() : window(nullptr) {
+    // Inicjalizacja OpenGL, shaderów itp.
+    initOpenGL();
+}
+
+Renderer::~Renderer() {
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}
+
+// Zwracanie wskaźnika do okna
+GLFWwindow* Renderer::getWindow() const {
+    return window;
+}
+
+// Metoda do renderowania pojedynczej bakterii w widoku mikroskopowym
+void Renderer::renderBacteria(IBacteria& bacteria, int gridWidth, int gridHeight) {
+    // Pozycja bakterii w systemie siatki
+    int gridX = bacteria.getX();
+    int gridY = bacteria.getY();
+
+    float renderX = static_cast<float>(gridX) * (static_cast<float>(WINDOW_WIDTH) / gridWidth) + (static_cast<float>(WINDOW_WIDTH) / gridWidth) / 2.0f;
+    float renderY = static_cast<float>(gridY) * (static_cast<float>(WINDOW_HEIGHT) / gridHeight) + (static_cast<float>(WINDOW_HEIGHT) / gridHeight) / 2.0f;
+
+    float health = bacteria.getHealth();
+    float red = 1.0f - health; 
+    float green = health;        
+    float blue = 0.0f; 
+
+    glColor3f(red, green, blue); 
+
+    const auto& circuit = bacteria.getCircuit();
+
+    if (!circuit.empty()) {
+        glBegin(GL_POLYGON); 
+        for (const auto& [dx, dy] : circuit) {
+             glVertex2f(renderX + dx, renderY + dy);
         }
-
-        // Tworzymy okno i kontekst OpenGL
-        window = glfwCreateWindow(800, 600, "PetriDish Simulation", nullptr, nullptr);
-        if (!window) {
-            std::cerr << "Failed to open GLFW window" << std::endl;
-            glfwTerminate();
-            exit(EXIT_FAILURE);
-        }
-
-        // ??
-        glfwMakeContextCurrent(window);
-        glfwSwapInterval(1); 
-
-        // Inicjalizacja GLEW
-        if (glewInit() != GLEW_OK) {
-            std::cerr << "Failed to initialize GLEW" << std::endl;
-            exit(EXIT_FAILURE);
-        }  
-
-        //Inicjalizujemy początkowe procedury
-        setupInitialProcedures();
-    }
-public:
-    Renderer() {
-        // Inicjalizacja OpenGL, shaderów itp.
-        initOpenGL();
-    }
-
-    // Zwracanie wskaźnika do okna
-    GLFWwindow* getWindow() const {
-        return window;  
-    }
-
-    //***********************************************************************
-    //Tutaj umieszczamy kod odpowiedzialny za logikę rysowania naszych obiektów: pozycję, zmiany tekstury itd
-    void renderBacteria(const Coccus& bacteria) {
-        // Pozycja bakterii
-        int x = bacteria.getX();
-        int y = bacteria.getY();
-
-        // Kolor bakterii (na przykład czerwony, można zmieniać w zależności od zdrowia)
-        float red = bacteria.getHealth();  // Kolor bakterii zmienia się w zależności od jej zdrowia
-        float green = 1.0f - bacteria.getHealth();
-
-        glColor3f(red, green, 0.0f);  // Ustaw kolor na podstawie zdrowia
-
-        // Narysowanie kwadratu reprezentującego bakterię
-        glBegin(GL_QUADS);
-            glVertex2f(x - 5, y - 5);
-            glVertex2f(x + 5, y - 5);
-            glVertex2f(x + 5, y + 5);
-            glVertex2f(x - 5, y + 5);
         glEnd();
     }
+}
 
-    //***********************************************************************
+void Renderer::beginFrame() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
 
-    //Główna procedura odpowiadająca za renderowanie klatki w pętli
-    void render(const Coccus& bacteria) {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // Czyszczenie bufora kolorów
-
-        //***********************************************************************
-        //Tutaj zajmujemy się rysowaniem zawartości sceny: wywolujemy metody odpowiadajace za poszczegolne obiekty
-        renderBacteria(bacteria);
-        //***********************************************************************
-        // Swap buffers, aby pokazać to, co zostało narysowane na ekranie
-        glfwSwapBuffers(window);
-    }
-};
+void Renderer::endFrame() {
+    glfwSwapBuffers(window);
+}
