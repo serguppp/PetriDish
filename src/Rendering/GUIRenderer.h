@@ -8,24 +8,28 @@
 
 class GUIRenderer {
 private:
-    float divisionInterval = 10.0f;
-    float antibioticStrength = 0.2f;
-    float antibioticRadius = 20.0f; 
-    BacteriaType selectedBacteriaType = BacteriaType::Cocci; //Domyslnie Cocci
+    float divisionInterval;
+    float antibioticStrength;
+    float antibioticRadius; 
+    BacteriaType selectedBacteriaType; 
+
+    int mouseClickX;
+    int mouseClickY;
+    ImVec2 mousePos;
+
+    bool isWaitingForBacteriaPlacement;
+    bool isWaitingForAntibioticPlacement;
 
 public:
     // Funkcje callback
     std::function<void(BacteriaType, int, int)> onAddBacteria; 
-    std::function<void(int, int, float, float)> onApplyAntibiotic; 
+    std::function<void(float, float, int, int)> onApplyAntibiotic; 
     std::function<void(float)> onDivisionIntervalChanged;
-
+    
+    GUIRenderer();
     // Metoda renderująca GUI
     void render();
 
     // Metoda do ustawienia pozycji kliknięcia myszy 
     void setMouseClickPosition(int x, int y);
-
-private:
-    int mouseClickX = -1;
-    int mouseClickY = -1;
 };

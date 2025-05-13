@@ -1,11 +1,13 @@
 #include "Renderer.h" 
-#include "../Simulation/IBacteria.h" 
 
-// Inicjalizacje procedur, obslugi klawiatury, bledow, itd - wszystko to, co wykonujemy raz na początku programu
+Renderer::Renderer() : window(nullptr) {
+    // Inicjalizacja OpenGL, shaderów itp.
+    initOpenGL();
+}
+
+// Inicjalizacje procedur - wszystko to, co wykonujemy raz na początku programu
 void Renderer::setupInitialProcedures() {
     // Ustawienie ortograficznej macierzy projekcji
-    // Mapuje współrzędne świata (0,0) do (WINDOW_WIDTH, WINDOW_HEIGHT) na okno
-    // (0,0) jest w lewym górnym rogu
     glOrtho(0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, -1, 1);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f); 
     glEnable(GL_BLEND); 
@@ -38,9 +40,17 @@ void Renderer::initOpenGL() {
     setupInitialProcedures();
 }
 
-Renderer::Renderer() : window(nullptr) {
-    // Inicjalizacja OpenGL, shaderów itp.
-    initOpenGL();
+// Zwracanie wskaźnika do okna
+GLFWwindow* Renderer::getWindow() const {
+    return window;
+}
+
+void Renderer::beginFrame() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void Renderer::endFrame() {
+    glfwSwapBuffers(window);
 }
 
 Renderer::~Renderer() {
@@ -48,19 +58,9 @@ Renderer::~Renderer() {
     glfwTerminate();
 }
 
-// Zwracanie wskaźnika do okna
-GLFWwindow* Renderer::getWindow() const {
-    return window;
-}
-
 // Metoda do renderowania pojedynczej bakterii w widoku mikroskopowym
-void Renderer::renderBacteria(IBacteria& bacteria, int gridWidth, int gridHeight) {
-    // Pozycja bakterii w systemie siatki
-    int gridX = bacteria.getX();
-    int gridY = bacteria.getY();
-
-    float renderX = static_cast<float>(gridX) * (static_cast<float>(WINDOW_WIDTH) / gridWidth) + (static_cast<float>(WINDOW_WIDTH) / gridWidth) / 2.0f;
-    float renderY = static_cast<float>(gridY) * (static_cast<float>(WINDOW_HEIGHT) / gridHeight) + (static_cast<float>(WINDOW_HEIGHT) / gridHeight) / 2.0f;
+void Renderer::renderBacteria(IBacteria& bacteria) {
+    glm::vec4 position = bacteria.getPos();
 
     float health = bacteria.getHealth();
     float red = 1.0f - health; 
@@ -74,16 +74,15 @@ void Renderer::renderBacteria(IBacteria& bacteria, int gridWidth, int gridHeight
     if (!circuit.empty()) {
         glBegin(GL_POLYGON); 
         for (const auto& [dx, dy] : circuit) {
-             glVertex2f(renderX + dx, renderY + dy);
+             glVertex2f(position.x + dx, position.y + dy);
         }
         glEnd();
     }
 }
 
-void Renderer::beginFrame() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
-void Renderer::endFrame() {
-    glfwSwapBuffers(window);
+void Renderer::renderColony(std::vector<std::unique_ptr<IBacteria>>& allBacteria) {
+    for (auto& bacteria : allBacteria) {
+        if (bacteria->isAlive())
+            renderBacteria(*bacteria);
+    }
 }

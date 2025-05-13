@@ -2,6 +2,8 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/vec4.hpp>
 #include "../Simulation/IBacteria.h" 
 
 #include <iostream>
@@ -15,7 +17,7 @@ class Renderer {
 private:
     GLFWwindow* window;
 
-    // Inicjalizacje procedur, obslugi klawiatury, bledow, itd - wszystko to, co wykonujemy raz na początku programu
+    // Inicjalizacje procedur - wszystko to, co wykonujemy raz na początku programu
     void setupInitialProcedures();
 
     //Inicjalizacja środowiska OpenGL oraz okna programu
@@ -29,10 +31,13 @@ public:
     // Zwracanie wskaźnika do okna
     GLFWwindow* getWindow() const;
 
-    // Metoda do renderowania pojedynczej bakterii
-    void renderBacteria(IBacteria& bacteria, int gridWidth, int gridHeight); 
-
     // Główna procedura odpowiadająca za renderowanie klatki w pętli
     void beginFrame();
+    
     void endFrame();
+
+    void renderBacteria(IBacteria& bacteria); 
+
+    void renderColony(std::vector<std::unique_ptr<IBacteria>>& allBacteria);
+
 };

@@ -6,7 +6,8 @@
 
 #include "Rendering/Renderer.h"
 #include "Rendering/GUIRenderer.h"
-#include "Simulation/Coccus.h" 
+#include "Simulation/Bacteria.h" 
+#include "Simulation/BacteriaFactory.h"
 
 #include <iostream>
 #include <vector>
@@ -31,40 +32,30 @@ void cleanupGUI(){
     ImGui::DestroyContext();
 }
 
+void setupCallbacks(GUIRenderer& guiRenderer, std::vector<std::unique_ptr<IBacteria>>& allBacteria ){
+    guiRenderer.onAddBacteria = [&](BacteriaType type, int x, int y) {
+        glm::vec2 clickPosition(x, y);
+        allBacteria.push_back(BacteriaFactory::createOnClick(type, clickPosition));
+    };   
+    
+    guiRenderer.onApplyAntibiotic = [&](float antibioticStrength, float antibioticRadius, int x, int y) {
+    
+    };    
+
+    guiRenderer.onDivisionIntervalChanged = [&](float divisionInterval) {
+
+    };    
+}
 int main() {
-
-    //*****************************************************/
-    auto previousTime = std::chrono::steady_clock::now();
-    int frameCount = 0;
-    float elapsedTime = 0.0f;
-
-    // Tworzymy obiekty
     Renderer renderer;
     GUIRenderer guiRenderer;
+    std::vector<std::unique_ptr<IBacteria>> allBacteria;
+    
+    setupCallbacks(guiRenderer, allBacteria);
     setupImGUI(renderer.getWindow());
-
-    //*****************************************************/
-
-    //***********************************************************************
 
     // Główna pętla programu
     while (!glfwWindowShouldClose(renderer.getWindow())) {
-        //**** Mechanizm FPS ****/
-        auto currentTime = std::chrono::steady_clock::now();
-        std::chrono::duration<float> deltaTimeDuration = currentTime - previousTime;
-        previousTime = currentTime;
-
-        float dt = deltaTimeDuration.count();
-        elapsedTime += dt;
-        frameCount++;
-
-        if (elapsedTime >= 1.0f) {
-            std::cout << "FPS: " << frameCount << std::endl; 
-            frameCount = 0;
-            elapsedTime = 0.0f;
-        }
-        //***********************/
-
         // Przetwarzanie zdarzeń (np. wejście z klawiatury)
         glfwPollEvents();
 
@@ -79,13 +70,13 @@ int main() {
         //Renderowanie klatek 
         renderer.beginFrame();
 
+        renderer.renderColony(allBacteria);
+        
         // Renderowanie klatki ImGUI
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         renderer.endFrame();
-
-        //***********************************************************************
     }
 
     cleanupGUI();
