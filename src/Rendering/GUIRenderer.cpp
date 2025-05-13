@@ -17,7 +17,7 @@ void GUIRenderer::setBacteriaCount(size_t count) {
     currentBacteriaCountDisplay = count;
 }
 
-void GUIRenderer::render() {
+void GUIRenderer::render(const glm::vec2& viewOffset, float zoomLevel, int windowHeight) {
     ImGui::Begin("Symulacja");
 
     // --- Licznik FPS ---
@@ -25,8 +25,18 @@ void GUIRenderer::render() {
     ImGui::Separator();
 
     // --- Pozycja myszki ---
-    currentMouseScreenPos = ImGui::GetMousePos();
-    ImGui::Text("Pozycja myszki: X: %.1f, Y: %.1f", currentMouseScreenPos.x, currentMouseScreenPos.y);
+    currentMouseScreenPos = ImGui::GetMousePos(); 
+
+    // Konwersja współrzędnych ekranowych ImGui na współrzędne świata
+    float screen_y_opengl = static_cast<float>(windowHeight) - currentMouseScreenPos.y;
+    glm::vec2 screen_pos_gl(currentMouseScreenPos.x, screen_y_opengl);
+
+    glm::vec2 worldMousePos(0.0f, 0.0f);
+    if (zoomLevel != 0.0f) { 
+        worldMousePos = viewOffset + (screen_pos_gl / zoomLevel);
+    }
+    
+    ImGui::Text("Pozycja myszki X: %.1f, Y: %.1f", worldMousePos.x, worldMousePos.y);
     ImGui::Separator();
 
     // --- Liczba bakterii ---
@@ -35,7 +45,7 @@ void GUIRenderer::render() {
 
     // --- Sekcja dodawania bakterii---
     ImGui::Text("Dodaj bakterie:");
-    const char* bacteriaTypeNames[] = {"Cocci", "Diplococcus", "Staphylococci"};
+    const char* bacteriaTypeNames[] = {"Cocci", "Diplococcus", "Staphylococci", "Bacillus"};
     static int currentBacteriaTypeIndex = static_cast<int>(selectedBacteriaType);
     if (ImGui::Combo("Typ", &currentBacteriaTypeIndex, bacteriaTypeNames, IM_ARRAYSIZE(bacteriaTypeNames))) {
         selectedBacteriaType = static_cast<BacteriaType>(currentBacteriaTypeIndex);

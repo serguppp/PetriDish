@@ -9,7 +9,8 @@
 enum class BacteriaType {
     Cocci,
     Diplococcus,
-    Staphylococci
+    Staphylococci,
+    Bacillus
 };
 
 struct BacteriaStats;

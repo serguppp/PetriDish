@@ -56,7 +56,6 @@ BacteriaType Bacteria::getBacteriaType() const {
     return bacteriaType;
 }
 
-// Return a const reference to the circuit
 const std::vector<std::pair<float, float>>& Bacteria::getCircuit() const {
     return stats.circuit;
 }
