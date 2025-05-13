@@ -2,34 +2,30 @@
 
 #include <functional>
 #include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
 #include "../Simulation/IBacteria.h" 
 
 class GUIRenderer {
 private:
-    float divisionInterval;
     float antibioticStrength;
-    float antibioticRadius; 
-    BacteriaType selectedBacteriaType; 
+    float antibioticRadius;
+    int addBacteriaCount; 
+    BacteriaType selectedBacteriaType;
 
-    int mouseClickX;
-    int mouseClickY;
-    ImVec2 mousePos;
+    ImVec2 currentMouseScreenPos; 
 
     bool isWaitingForBacteriaPlacement;
     bool isWaitingForAntibioticPlacement;
 
-public:
-    // Funkcje callback
-    std::function<void(BacteriaType, int, int)> onAddBacteria; 
-    std::function<void(float, float, int, int)> onApplyAntibiotic; 
-    std::function<void(float)> onDivisionIntervalChanged;
-    
-    GUIRenderer();
-    // Metoda renderująca GUI
-    void render();
+    size_t currentBacteriaCountDisplay; 
 
-    // Metoda do ustawienia pozycji kliknięcia myszy 
-    void setMouseClickPosition(int x, int y);
+public:
+    std::function<void(BacteriaType type, int count, int screenX, int screenY)> onAddBacteria;
+    std::function<void(float strength, float radius, int screenX, int screenY)> onApplyAntibiotic;
+    std::function<void(float interval)> onDivisionIntervalChanged; 
+
+    GUIRenderer();
+    void render(); 
+
+    void setBacteriaCount(size_t count);
+
 };

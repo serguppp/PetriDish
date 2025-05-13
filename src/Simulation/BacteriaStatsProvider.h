@@ -1,19 +1,54 @@
 #pragma once
 
-#include "IBacteria.h"
+#include "IBacteria.h" 
 #include "BacteriaStats.h"
-#include <unordered_map>
+#include <vector>    
+#include <utility>  
 
 inline BacteriaStats getStatsForType(BacteriaType type) {
-    //return { health, divisionInterval, antibioticResistance, circuit}
+    // Format: {health, divisionInterval, antibioticResistance, circuit_vertices}
     switch (type) {
         case BacteriaType::Cocci:
-            return {1.0f, 5.0f, 0.2f, {{-5, -5}, {5, -5}, {5, 5}, {-5, 5}}};
-        case BacteriaType::Diplococcus:
-            return {1.0f, 4.0f, 0.4f, {{-8, -4}, {8, -4}, {8, 4}, {-8, 4}}};
-        case BacteriaType::Staphylococci:
-            return {1.0f, 6.0f, 0.1f, {{-10, -10}, {10, -10}, {10, 10}, {-10, 10}}};
+            return {
+                1.0f,  // health
+                8.0f,  // divisionInterval 
+                0.2f,  // antibioticResistance
+                {      // circuit 
+                    {0.0f, 1.0f}, {0.707f, 0.707f}, {1.0f, 0.0f}, {0.707f, -0.707f},
+                    {0.0f, -1.0f}, {-0.707f, -0.707f}, {-1.0f, 0.0f}, {-0.707f, 0.707f}
+                }
+            };
+        case BacteriaType::Diplococcus: 
+            return {
+                1.0f,
+                10.0f,
+                0.3f,
+                { 
+                    // Czesc pierwsza
+                    {-0.7f, 1.0f}, {-0.0f, 0.707f}, {0.2f, 0.0f}, {-0.0f, -0.707f},
+                    {-0.7f, -1.0f}, {-1.4f, -0.707f}, {-1.6f, 0.0f}, {-1.4f, 0.707f},
+                     // Czesc druga
+                    {0.7f, 1.0f}, {1.4f, 0.707f}, {1.6f, 0.0f}, {1.4f, -0.707f},
+                    {0.7f, -1.0f}, {0.0f, -0.707f}, {-0.2f, 0.0f}, {0.0f, 0.707f}
+
+                }
+            };
+        case BacteriaType::Staphylococci: 
+            return {
+                0.8f,  
+                12.0f,
+                0.1f,
+                {
+                    {0.0f, 1.5f}, {1.0f, 1.2f}, {1.5f, 0.5f}, {1.2f, -0.5f},
+                    {0.5f, -1.5f}, {-0.5f, -1.2f}, {-1.5f, -0.5f}, {-1.0f, 1.0f}
+                }
+            };
         default:
-            return {1.0f, 5.0f, 0.0f, {{-5, -5}, {5, -5}, {5, 5}, {-5, 1}}}; 
+            return {
+                1.0f,
+                15.0f,
+                0.0f,
+                {{-0.5f, -0.5f}, {0.5f, -0.5f}, {0.5f, 0.5f}, {-0.5f, 0.5f}} 
+            };
     }
 }

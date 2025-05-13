@@ -3,6 +3,8 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/random.hpp" 
 
 #include "Rendering/Renderer.h"
 #include "Rendering/GUIRenderer.h"
@@ -33,10 +35,17 @@ void cleanupGUI(){
 }
 
 void setupCallbacks(GUIRenderer& guiRenderer, std::vector<std::unique_ptr<IBacteria>>& allBacteria ){
-    guiRenderer.onAddBacteria = [&](BacteriaType type, int x, int y) {
-        glm::vec2 clickPosition(x, y);
-        allBacteria.push_back(BacteriaFactory::createOnClick(type, clickPosition));
-    };   
+    guiRenderer.onAddBacteria = [&](BacteriaType type, int bacteriaCount, int x, int y) {
+            glm::vec3 clickCenter(static_cast<float>(x), static_cast<float>(y), 0.0f);
+            float offsetRadius = 2.0f;
+
+            for (int i = 0; i < bacteriaCount; ++i) {
+                glm::vec3 offset = glm::gaussRand(glm::vec3(0.0f), glm::vec3(offsetRadius));
+                glm::vec3 spawnPosition= clickCenter + offset;
+                glm::vec4 finalPosition(spawnPosition, 1.0f);
+                allBacteria.push_back(BacteriaFactory::createAtPosition(type, finalPosition));
+            }
+        }; 
     
     guiRenderer.onApplyAntibiotic = [&](float antibioticStrength, float antibioticRadius, int x, int y) {
     
@@ -46,9 +55,12 @@ void setupCallbacks(GUIRenderer& guiRenderer, std::vector<std::unique_ptr<IBacte
 
     };    
 }
+
 int main() {
     Renderer renderer;
     GUIRenderer guiRenderer;
+
+    
     std::vector<std::unique_ptr<IBacteria>> allBacteria;
     
     setupCallbacks(guiRenderer, allBacteria);
@@ -56,7 +68,7 @@ int main() {
 
     // Główna pętla programu
     while (!glfwWindowShouldClose(renderer.getWindow())) {
-        // Przetwarzanie zdarzeń (np. wejście z klawiatury)
+        // Przetwarzanie zdarzeń
         glfwPollEvents();
 
         // Rozpoczęcie klatki ImGUI

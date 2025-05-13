@@ -21,6 +21,8 @@ void Renderer::initOpenGL() {
         exit(EXIT_FAILURE);
     }
 
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
     // Tworzymy okno i kontekst OpenGL
     window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "PetriDish Simulation", nullptr, nullptr);
     if (!window) {
@@ -58,10 +60,22 @@ Renderer::~Renderer() {
     glfwTerminate();
 }
 
-// Metoda do renderowania pojedynczej bakterii w widoku mikroskopowym
+// Metoda do renderowania pojedynczej bakterii
 void Renderer::renderBacteria(IBacteria& bacteria) {
     glm::vec4 position = bacteria.getPos();
+    BacteriaType type = bacteria.getBacteriaType(); 
 
+    switch (type) {
+        case BacteriaType::Cocci: glColor3f(0.9f, 0.4f, 0.4f); break; // czerwony
+        case BacteriaType::Diplococcus: glColor3f(0.4f, 0.9f, 0.4f); break; // zielony
+        case BacteriaType::Staphylococci: glColor3f(0.4f, 0.4f, 0.9f); break; // niebieski
+        default: glColor3f(0.7f, 0.7f, 0.7f); break;
+    }
+    glBegin(GL_POINTS);
+    glVertex2f(position.x, position.y);
+    glEnd();
+
+    /*
     float health = bacteria.getHealth();
     float red = 1.0f - health; 
     float green = health;        
@@ -70,7 +84,7 @@ void Renderer::renderBacteria(IBacteria& bacteria) {
     glColor3f(red, green, blue); 
 
     const auto& circuit = bacteria.getCircuit();
-
+    
     if (!circuit.empty()) {
         glBegin(GL_POLYGON); 
         for (const auto& [dx, dy] : circuit) {
@@ -78,11 +92,12 @@ void Renderer::renderBacteria(IBacteria& bacteria) {
         }
         glEnd();
     }
+    */
 }
 
 void Renderer::renderColony(std::vector<std::unique_ptr<IBacteria>>& allBacteria) {
     for (auto& bacteria : allBacteria) {
-        if (bacteria->isAlive())
+        if (bacteria && bacteria->isAlive())
             renderBacteria(*bacteria);
     }
 }

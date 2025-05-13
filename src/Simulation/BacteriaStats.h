@@ -6,5 +6,5 @@ struct BacteriaStats {
     float health;
     float divisionInterval;
     float antibioticResistance;
-    std::vector<std::pair<int, int>> circuit;
+    std::vector<std::pair<float, float>> circuit;
 };
