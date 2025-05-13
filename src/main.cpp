@@ -32,8 +32,7 @@ glm::vec2 viewOffset(0.0f, 0.0f);
 glm::vec2 lastMousePos(0.0f, 0.0f);
 bool isPanning = false;
 
-void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
-{
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset){
     if (ImGui::GetIO().WantCaptureMouse){ 
         return;
     }
@@ -99,8 +98,8 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
         viewOffset.y += delta_screen.y / currentZoomLevel;
     }
 }
-void setupImGUI(GLFWwindow *window)
-{
+
+void setupImGUI(GLFWwindow *window){
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
@@ -118,10 +117,8 @@ void cleanupGUI()
     ImGui::DestroyContext();
 }
 
-void setupGuiCallbacks(GUIRenderer &guiRenderer, std::vector<std::unique_ptr<IBacteria>> &allBacteria)
-{
-    guiRenderer.onAddBacteria = [&](BacteriaType type, int bacteriaCount, int x_screen_raw, int y_screen_raw)
-    {
+void setupGuiCallbacks(GUIRenderer &guiRenderer, Renderer& renderer, std::vector<std::unique_ptr<IBacteria>> &allBacteria){
+    guiRenderer.onAddBacteria = [&](BacteriaType type, int bacteriaCount, int x_screen_raw, int y_screen_raw){
         float gl_screen_y = static_cast<float>(WINDOW_HEIGHT - y_screen_raw);
         glm::vec2 screen_pos_for_unproject(static_cast<float>(x_screen_raw), gl_screen_y);
         glm::vec2 world_click_center_pos = viewOffset + (screen_pos_for_unproject / currentZoomLevel);
@@ -130,8 +127,7 @@ void setupGuiCallbacks(GUIRenderer &guiRenderer, std::vector<std::unique_ptr<IBa
         // Promień rozrzutu 
         float offsetRadiusWorld = 2.0f; 
 
-        for (int i = 0; i < bacteriaCount; ++i)
-        {
+        for (int i = 0; i < bacteriaCount; ++i){
             glm::vec2 randomOffset = glm::gaussRand(glm::vec2(0.0f), glm::vec2(offsetRadiusWorld));
             glm::vec3 spawnPosition = clickCenter + glm::vec3(randomOffset.x, randomOffset.y, 0.0f);
             glm::vec4 finalPosition(spawnPosition, 1.0f);
@@ -139,21 +135,30 @@ void setupGuiCallbacks(GUIRenderer &guiRenderer, std::vector<std::unique_ptr<IBa
         }
     };
 
-    guiRenderer.onApplyAntibiotic = [&](float antibioticStrength, float antibioticRadius, int x_screen_raw, int y_screen_raw)
-    {
+    guiRenderer.onApplyAntibiotic = [&](float antibioticStrength, float antibioticRadius, int x_screen_raw, int y_screen_raw){
         float gl_screen_y = static_cast<float>(WINDOW_HEIGHT - y_screen_raw);
         glm::vec2 screen_pos_for_unproject(static_cast<float>(x_screen_raw), gl_screen_y);
         glm::vec2 world_click_center_pos = viewOffset + (screen_pos_for_unproject / currentZoomLevel);
 
+        renderer.addAntibioticEffect(world_click_center_pos, antibioticStrength, antibioticRadius);
 
-        // TODO: logika dla antybiotyku
+        for (auto& bacteria : allBacteria) {
+            if (bacteria && bacteria->isAlive()) {
+                glm::vec4 bacteriaPosVec4 = bacteria->getPos();
+                glm::vec2 bacteriaPos(bacteriaPosVec4.x, bacteriaPosVec4.y);
+                float distance = glm::distance(world_click_center_pos, bacteriaPos);
+                if (distance <= antibioticRadius) {
+                    float strengthAtDistance = antibioticStrength * (1.0f - (distance / antibioticRadius));
+                    bacteria->applyAntibiotic(strengthAtDistance);
+                }
+            }
+        }
     };
 }
-int main()
-{
+
+int main(){
     // Inicjalizacja GLFW
-    if (!glfwInit())
-    {
+    if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW" << std::endl;
         return -1;
     }
@@ -178,17 +183,38 @@ int main()
     setupImGUI(renderer.getWindow()); 
 
     // Ustawienie callbacków dla GUI 
-    setupGuiCallbacks(guiRenderer, allBacteria);
+    setupGuiCallbacks(guiRenderer, renderer, allBacteria);
+
+    float lastFrameTime = 0.0f;
 
     // Główna pętla programu
-    while (!glfwWindowShouldClose(renderer.getWindow()))
-    {
+    while (!glfwWindowShouldClose(renderer.getWindow())) {
+        float currentTime = static_cast<float>(glfwGetTime());
+        float deltaTime = currentTime - lastFrameTime;
+        lastFrameTime = currentTime;
+
         glfwPollEvents();
 
+        // --- sekcja UPDATE ---
+        for (auto& bacteria : allBacteria) {
+            if (bacteria) {
+                bacteria->update(deltaTime);
+            }
+        }
+        
+        allBacteria.erase(
+            std::remove_if(allBacteria.begin(), allBacteria.end(),
+                           [](const std::unique_ptr<IBacteria>& b) { return !b || !b->isAlive(); }),
+            allBacteria.end()
+        );
+        
+        renderer.updateAntibioticEffects(deltaTime);        
+        // -----------------------
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        guiRenderer.setBacteriaCount(allBacteria.size());
         guiRenderer.render(viewOffset, currentZoomLevel, WINDOW_HEIGHT);  // Logika UI w ImGui
 
         // Rozpoczęcie klatki renderowania sceny
@@ -215,6 +241,9 @@ int main()
 
         // Renderowanie kolonii bakterii
         renderer.renderColony(allBacteria, currentZoomLevel);
+
+        //Renderowanie antybiotyków
+        renderer.renderAntibioticEffects(currentZoomLevel);
 
         // Renderowanie klatki ImGui na wierzchu sceny
         ImGui::Render();

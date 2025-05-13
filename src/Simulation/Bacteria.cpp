@@ -23,12 +23,15 @@ bool Bacteria::canDivide() const {
 void Bacteria::applyAntibiotic(float intensity) {
     if (!isAlive()) return;
 
-    float damage = intensity * (1.0f - stats.antibioticResistance);
-    stats.health -= damage;
-
-    if (stats.health < 0.0f) 
-        stats.health = 0.0f;
+    float effectiveResistance = glm::clamp(stats.antibioticResistance, 0.0f, 0.95f); 
+    float damage = intensity * (1.0f - effectiveResistance);
     
+    if (damage > 0.0f) {
+        stats.health -= damage;
+        if (stats.health < 0.0f) {
+            stats.health = 0.0f;
+        }
+    }
 }
 
 IBacteria* Bacteria::clone() const {

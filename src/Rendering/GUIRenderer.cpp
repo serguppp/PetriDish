@@ -98,5 +98,8 @@ void GUIRenderer::render(const glm::vec2& viewOffset, float zoomLevel, int windo
     }
     ImGui::Separator();
 
+    // --- Sekcja informacji o najechanej bakterii ---
+
+    
     ImGui::End();
 }

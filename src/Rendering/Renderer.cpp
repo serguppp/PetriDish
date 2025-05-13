@@ -105,7 +105,6 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel) {
             // Przyciemnianie koloru w zależności od HP
             glColor4f(currentColor[0] * health, currentColor[1] * health, currentColor[2] * health, currentColor[3] * (health > 0.1f ? 1.0f : health * 2.0f) ); // Zadbaj o alpha
 
-
             glBegin(GL_POLYGON);
             for (const auto& vertexOffset : circuit) {
                 glVertex2f(static_cast<float>(vertexOffset.first), static_cast<float>(vertexOffset.second));
@@ -124,6 +123,50 @@ void Renderer::renderColony(const std::vector<std::unique_ptr<IBacteria>>& allBa
     }
 }
 
-void Renderer::renderAntibiotic(){
-    
+void Renderer::addAntibioticEffect(const glm::vec2& worldPos, float strength, float radius, float lifetime) {
+    activeAntibiotics.push_back({worldPos, strength, radius, 0.0f, lifetime});
+}
+
+void Renderer::updateAntibioticEffects(float deltaTime) {
+    for (auto& antibiotic : activeAntibiotics) {
+        antibiotic.timeApplied += deltaTime;
+    }
+    activeAntibiotics.erase(
+        std::remove_if(activeAntibiotics.begin(), activeAntibiotics.end(), 
+                       [](const AntibioticEffect& effect) {
+                           return effect.timeApplied >= effect.maxLifetime;
+                       }),
+        activeAntibiotics.end()
+    );
+}
+
+void Renderer::renderAntibioticEffects(float zoomLevel) {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
+
+    for (const auto& antibiotic : activeAntibiotics) {
+        float effectProgress = antibiotic.timeApplied / antibiotic.maxLifetime;
+        float currentRadius = antibiotic.radius * (1.0f - effectProgress); // Kurczenie się poświaty
+        float alpha = 1.0f - effectProgress;
+
+        if (alpha <= 0.0f || currentRadius <= 0.0f) continue;
+
+        glColor4f(0.5f, 0.7f, 1.0f, alpha * 0.5f); 
+
+        glPushMatrix();
+        glTranslatef(antibiotic.worldPosition.x, antibiotic.worldPosition.y, 0.0f);
+        
+        const int num_segments = 50;
+        glBegin(GL_TRIANGLE_FAN);
+        glVertex2f(0.0f, 0.0f);
+        for (int i = 0; i <= num_segments; i++) {
+            float angle = 2.0f * 3.1415926f * static_cast<float>(i) / static_cast<float>(num_segments);
+            float x = currentRadius * cosf(angle);
+            float y = currentRadius * sinf(angle);
+            glVertex2f(x, y);
+        }
+        glEnd();
+        glPopMatrix();
+    }
+    glDisable(GL_BLEND);
 }
