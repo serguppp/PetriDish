@@ -72,7 +72,6 @@ void GUIRenderer::render(const glm::vec2& viewOffset, float zoomLevel, int windo
     }
     ImGui::Separator();
 
-
     // --- Sekcja dodawania antybiotyku ---
     ImGui::Text("Aplikuj antybiotyk:");
     ImGui::SliderFloat("Sila", &antibioticStrength, 0.05f, 1.0f);

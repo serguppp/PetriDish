@@ -23,7 +23,7 @@
 
 const int WINDOW_WIDTH = 1024;
 const int WINDOW_HEIGHT = 768;
-const float MAX_ZOOM_LEVEL = 15.0f;
+const float MAX_ZOOM_LEVEL = 30.0f;
 const float MIN_ZOOM_LEVEL = 0.2f;
 const float ZOOM_SENSITIVITY = 0.1f;
 

@@ -36,6 +36,27 @@ set(IMGUI_SOURCES
 
 add_executable(PetriDish ${APP_SOURCES} ${IMGUI_SOURCES})
 
+set(SHADER_DIR "${CMAKE_SOURCE_DIR}/src/shaders")
+
+set(OUTPUT_SHADER_DIR "$<TARGET_FILE_DIR:PetriDish>/shaders")
+
+add_custom_command(TARGET PetriDish POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${OUTPUT_SHADER_DIR}"
+    COMMENT "Creating shaders directory in output"
+)
+add_custom_command(TARGET PetriDish POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SHADER_DIR}/bacteria.vert"
+        "${OUTPUT_SHADER_DIR}/bacteria.vert"
+    COMMENT "Copying bacteria.vert"
+)
+add_custom_command(TARGET PetriDish POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SHADER_DIR}/bacteria.frag"
+        "${OUTPUT_SHADER_DIR}/bacteria.frag"
+    COMMENT "Copying bacteria.frag"
+)
+
 set(GLEW_DLL_PATH "${CMAKE_SOURCE_DIR}/external/glew/bin/Release/Win32/glew32.dll")
 
 if(EXISTS "${GLEW_DLL_PATH}")
