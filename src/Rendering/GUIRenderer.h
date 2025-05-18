@@ -10,6 +10,7 @@ private:
     float antibioticRadius;
     int addBacteriaCount; 
     BacteriaType selectedBacteriaType;
+    float lightRange;
 
     ImVec2 currentMouseScreenPos; 
     bool isWaitingForBacteriaPlacement;
@@ -17,11 +18,12 @@ private:
     size_t currentBacteriaCountDisplay;
 
 public:
+    GUIRenderer();
+
     std::function<void(BacteriaType type, int count, int screenX, int screenY)> onAddBacteria;
     std::function<void(float strength, float radius, int screenX, int screenY)> onApplyAntibiotic;
-    std::function<void(float interval)> onDivisionIntervalChanged; 
+    std::function<void(float range)> onLightRangeChanged; 
 
-    GUIRenderer();
     void render(const glm::vec2& viewOffset, float zoomLevel, int windowHeight);
 
     void setBacteriaCount(size_t count);

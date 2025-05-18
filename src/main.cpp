@@ -154,6 +154,11 @@ void setupGuiCallbacks(GUIRenderer &guiRenderer, Renderer& renderer, std::vector
             }
         }
     };
+
+    guiRenderer.onLightRangeChanged = [&](float range) {
+        renderer.setLightRange(range*1.4);
+        renderer.setGlowRadius(range);
+    };
 }
 
 int main(){
@@ -239,11 +244,21 @@ int main(){
         glMatrixMode(GL_MODELVIEW); 
         glLoadIdentity();           
 
+        GLfloat projMatrixGL[16];
+        GLfloat modelViewMatrixGL[16];
+        glGetFloatv(GL_PROJECTION_MATRIX, projMatrixGL);
+        glGetFloatv(GL_MODELVIEW_MATRIX, modelViewMatrixGL);
+        glm::mat4 projectionMatrix = glm::make_mat4(projMatrixGL);
+        glm::mat4 modelViewMatrix = glm::make_mat4(modelViewMatrixGL);
+
         // Renderowanie kolonii bakterii
         renderer.renderColony(allBacteria, currentZoomLevel, viewOffset); 
 
         //Renderowanie antybiotyków
         renderer.renderAntibioticEffects(currentZoomLevel);
+
+         // Renderowanie poświaty 
+        renderer.renderGlowEffect(projectionMatrix, modelViewMatrix, currentZoomLevel);
 
         // Renderowanie klatki ImGui na wierzchu sceny
         ImGui::Render();

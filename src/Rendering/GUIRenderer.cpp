@@ -11,7 +11,8 @@ GUIRenderer::GUIRenderer()
       currentMouseScreenPos(0,0),
       isWaitingForBacteriaPlacement(false),
       isWaitingForAntibioticPlacement(false),
-      currentBacteriaCountDisplay(0) {}
+      currentBacteriaCountDisplay(0),
+      lightRange(100.0f) {}
 
 void GUIRenderer::setBacteriaCount(size_t count) {
     currentBacteriaCountDisplay = count;
@@ -97,8 +98,16 @@ void GUIRenderer::render(const glm::vec2& viewOffset, float zoomLevel, int windo
     }
     ImGui::Separator();
 
+     // --- Sekcja ustawień oświetlenia ---
+    ImGui::Text("Ustawienia oswietlenia:");
+    if (ImGui::SliderFloat("Zasieg swiatla", &lightRange, 10.0f, 500.0f)) { 
+        if (onLightRangeChanged) {
+            onLightRangeChanged(lightRange);
+        }
+    }
+    ImGui::Separator();
+
     // --- Sekcja informacji o najechanej bakterii ---
 
-    
     ImGui::End();
 }

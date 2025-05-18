@@ -6,13 +6,20 @@ const float BACTERIA_MODEL_SCALE_FACTOR = 0.5f;
 Renderer::Renderer(int width, int height)
     : window(nullptr), windowWidth(width), windowHeight(height), successfullyInitialized(false),
       lightPosWorld(static_cast<float>(width) / 2.0f, static_cast<float>(height) / 2.0f, 10.0f), // domyślna pozycja światła
-      lightColor(1.0f, 1.0f, 1.0f),         // domyślny kolor światła 
-      ambientColor(0.2f, 0.2f, 0.2f)        // domyślny kolor światła otoczenia
+      lightColor(1.5f, 1.5f, 1.5f),         // domyślny kolor światła 
+      ambientColor(0.5f, 0.5f, 0.5f), // domyślny kolor światła otoczenia
+      lightRange(100.0f), // odleglosc swiatla 
+      lightIntensity(1.0f), // intensywność światła
+      glowColor(1.0f, 0.9f, 0.7f), // Kolor poświaty
+      glowRadius(100.0f),         // Promień poświaty 
+      glowIntensityFactor(0.75f)   // Intensywność poświaty
 {
     successfullyInitialized = initOpenGL(width, height);
     if (successfullyInitialized) {
         initBacteriaShader();
         setupBacteriaGeometry();
+        initGlowShader();     
+        setupGlowGeometry();  
     }
 }
 
@@ -117,6 +124,8 @@ void Renderer::initBacteriaShader() {
     bacteria_u_lightPosition_world_loc = shaderManager.getUniformLocation(programID, "u_lightPosition_world");
     bacteria_u_lightColor_loc = shaderManager.getUniformLocation(programID, "u_lightColor");
     bacteria_u_ambientColor_loc = shaderManager.getUniformLocation(programID, "u_ambientColor");
+    bacteria_u_viewPosition_world_loc = shaderManager.getUniformLocation(programID, "u_viewPosition_world"); 
+    bacteria_u_lightRange_loc = shaderManager.getUniformLocation(programID, "u_lightRange"); 
 
     if (bacteria_u_mvp_loc == -1) std::cerr << "Renderer: Uniform u_mvp not found in bacteriaShader" << std::endl;
     if (bacteria_u_worldPosition_loc == -1) std::cerr << "Renderer: Uniform u_worldPosition not found" << std::endl;
@@ -128,6 +137,8 @@ void Renderer::initBacteriaShader() {
     if (bacteria_u_lightPosition_world_loc == -1) std::cerr << "Renderer: Uniform u_lightPosition_world not found" << std::endl;
     if (bacteria_u_lightColor_loc == -1) std::cerr << "Renderer: Uniform u_lightColor not found" << std::endl;
     if (bacteria_u_ambientColor_loc == -1) std::cerr << "Renderer: Uniform u_ambientColor not found" << std::endl;
+    if (bacteria_u_viewPosition_world_loc == -1) std::cerr << "Renderer: Uniform u_viewPosition_world not found" << std::endl; 
+    if (bacteria_u_lightRange_loc == -1) std::cerr << "Renderer: Uniform u_lightRange not found" << std::endl; 
 }
 
 void Renderer::setupBacteriaGeometry() {
@@ -272,6 +283,7 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::v
         glUniform3fv(bacteria_u_lightPosition_world_loc, 1, glm::value_ptr(lightPosWorld));
         glUniform3fv(bacteria_u_lightColor_loc, 1, glm::value_ptr(lightColor));
         glUniform3fv(bacteria_u_ambientColor_loc, 1, glm::value_ptr(ambientColor));
+        glUniform1f(bacteria_u_lightRange_loc, lightRange);
 
         // Obliczanie pozycji kamery w świecie 
         float view_width_world = static_cast<float>(windowWidth) / zoomLevel;
@@ -346,4 +358,74 @@ void Renderer::renderAntibioticEffects(float zoomLevel) {
         glEnd();
         glPopMatrix();
     }
+}
+
+void Renderer::initGlowShader() {
+    GLuint programID = shaderManager.loadShaderProgram("glowShader", "shaders/glow.vert", "shaders/glow.frag");
+    if (programID == 0) {
+        std::cerr << "Renderer: Failed to load glow shader program!" << std::endl;
+        return;
+    }
+    glow_u_mvp_loc = shaderManager.getUniformLocation(programID, "u_mvp");
+    glow_u_lightPos_screen_loc = shaderManager.getUniformLocation(programID, "u_lightPos_screen");
+    glow_u_resolution_loc = shaderManager.getUniformLocation(programID, "u_resolution");
+    glow_u_glowColor_loc = shaderManager.getUniformLocation(programID, "u_glowColor");
+    glow_u_glowRadius_loc = shaderManager.getUniformLocation(programID, "u_glowRadius");
+    glow_u_glowIntensity_loc = shaderManager.getUniformLocation(programID, "u_glowIntensity");
+}
+
+void Renderer::setupGlowGeometry() {
+    float quadVertices[] = {
+        // pozycje
+        -1.0f,  1.0f,
+        -1.0f, -1.0f,
+         1.0f, -1.0f,
+
+        -1.0f,  1.0f,
+         1.0f, -1.0f,
+         1.0f,  1.0f
+    };
+
+    glGenVertexArrays(1, &glowVAO);
+    glGenBuffers(1, &glowVBO);
+    glBindVertexArray(glowVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, glowVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glBindVertexArray(0);
+}
+
+void Renderer::renderGlowEffect(const glm::mat4& projection, const glm::mat4& view, float currentZoomLevel) {
+    GLuint glowProgramID = shaderManager.getShaderProgram("glowShader");
+    if (glowProgramID == 0) return;
+
+    shaderManager.useShaderProgram(glowProgramID);
+
+    glm::mat4 mvp = glm::mat4(1.0f); 
+    glUniformMatrix4fv(glow_u_mvp_loc, 1, GL_FALSE, glm::value_ptr(mvp));
+
+    glm::vec4 lightPosClip = projection * view * glm::vec4(lightPosWorld, 1.0);
+    glm::vec3 lightPosNDC = glm::vec3(lightPosClip.x / lightPosClip.w, lightPosClip.y / lightPosClip.w, lightPosClip.z / lightPosClip.w);
+    glm::vec2 lightPosScreen(
+        (lightPosNDC.x * 0.5f + 0.5f) * windowWidth,
+        (lightPosNDC.y * 0.5f + 0.5f) * windowHeight
+    );
+
+    glUniform2fv(glow_u_lightPos_screen_loc, 1, glm::value_ptr(lightPosScreen));
+    glUniform2f(glow_u_resolution_loc, static_cast<float>(windowWidth), static_cast<float>(windowHeight));
+    glUniform3fv(glow_u_glowColor_loc, 1, glm::value_ptr(glowColor));
+
+    float glowRadiusPixels = glowRadius * currentZoomLevel; 
+    glUniform1f(glow_u_glowRadius_loc, glowRadiusPixels);
+    glUniform1f(glow_u_glowIntensity_loc, glowIntensityFactor * lightIntensity); 
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
+    glBindVertexArray(glowVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+    glDisable(GL_BLEND);
+    shaderManager.useShaderProgram(0);
 }

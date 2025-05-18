@@ -56,7 +56,18 @@ add_custom_command(TARGET PetriDish POST_BUILD
         "${OUTPUT_SHADER_DIR}/bacteria.frag"
     COMMENT "Copying bacteria.frag"
 )
-
+add_custom_command(TARGET PetriDish POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SHADER_DIR}/glow.vert"  
+        "${OUTPUT_SHADER_DIR}/glow.vert"
+    COMMENT "Copying glow.vert"
+)
+add_custom_command(TARGET PetriDish POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SHADER_DIR}/glow.frag" 
+        "${OUTPUT_SHADER_DIR}/glow.frag"
+    COMMENT "Copying glow.frag"
+)
 set(GLEW_DLL_PATH "${CMAKE_SOURCE_DIR}/external/glew/bin/Release/Win32/glew32.dll")
 
 if(EXISTS "${GLEW_DLL_PATH}")
