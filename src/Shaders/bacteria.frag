@@ -1,15 +1,22 @@
 #version 130
 
-in vec2 v_localPos;
-in vec2 v_worldPos_no_mvp;
+// Dane wejściowe z Vertex Shadera 
+in vec2 v_localPos;        // Lokalne współrzędne dla wzorów proceduralnych
+in vec3 v_fragPos_world;   // Pozycja fragmentu w przestrzeni świata dla oświetlenia
+in vec3 v_normal_world;    // Wektor normalny w przestrzeni świata dla oświetlenia
 
+// Uniformy podstawowe
 uniform int u_bacteriaType;
 uniform float u_health;
-uniform float u_time; 
+uniform float u_time;
 
-out vec4 out_FragColor;
+// Uniformy dla oświetlenia
+uniform vec3 u_lightPosition_world; // Pozycja światła w przestrzeni świata
+uniform vec3 u_lightColor;          // Kolor światła
+uniform vec3 u_ambientColor;        // Kolor światła otoczenia
 
-// Proste funkcje szumu 
+out vec4 FragColor; 
+
 float random(vec2 st) {
     return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
 }
@@ -21,53 +28,60 @@ float noise(vec2 st, float scale) {
     float b = random(i + vec2(1.0, 0.0));
     float c = random(i + vec2(0.0, 1.0));
     float d = random(i + vec2(1.0, 1.0));
-    vec2 u = f * f * (3.0 - 2.0 * f);
+    vec2 u = f * f * (3.0 - 2.0 * f); 
     return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
 }
 
 void main() {
-    vec3 baseColor;
-    float proceduralPattern = 0.0;
-    float alpha = (u_health > 0.05) ? (0.2 + u_health * 0.8) : (u_health * 2.0); 
-
+    vec3 patternedBaseColor; 
 
     if (u_bacteriaType == 0) { // Cocci
-        baseColor = vec3(0.9, 0.4, 0.4);
-        // Wzór: pulsowanie jasności oparte na odległości od środka i czasie
+        patternedBaseColor = vec3(0.9, 0.4, 0.4);
         float dist_from_local_center = length(v_localPos);
-        proceduralPattern = (sin(dist_from_local_center * 5.0 - u_time * 2.0) + 1.0) / 2.0;
-        baseColor = mix(baseColor * 0.7, baseColor * 1.1, proceduralPattern);
+        float localProceduralPattern = (sin(dist_from_local_center * 5.0 - u_time * 2.0) + 1.0) / 2.0;
+        patternedBaseColor = mix(patternedBaseColor * 0.7, patternedBaseColor * 1.1, localProceduralPattern);
 
     } else if (u_bacteriaType == 1) { // Diplococcus
-        baseColor = vec3(0.4, 0.9, 0.4);
-        // Wzór: dwa pulsujące centra 
-        // v_localPos.x może być np. od -1.6 do 1.6 dla Diplococcus
-        float lobe1 = smoothstep(0.5, 0.0, length(v_localPos - vec2(-0.8, 0.0)));
-        float lobe2 = smoothstep(0.5, 0.0, length(v_localPos - vec2(0.8, 0.0)));
+        patternedBaseColor = vec3(0.4, 0.9, 0.4);
+
+        float lobe1 = smoothstep(0.5, 0.0, length(v_localPos - vec2(-0.6, 0.0))); 
+        float lobe2 = smoothstep(0.5, 0.0, length(v_localPos - vec2(0.6, 0.0)));  
         float pulse = (sin(u_time + v_localPos.x * 2.0) + 1.0) / 2.0;
-        baseColor *= (0.6 + 0.4 * max(lobe1, lobe2) * pulse);
+        patternedBaseColor *= (0.6 + 0.4 * max(lobe1, lobe2) * pulse);
 
     } else if (u_bacteriaType == 2) { // Staphylococci
-        baseColor = vec3(0.4, 0.4, 0.9);
-        // Wzór: plamki z szumu
-        float spots = noise(v_localPos, 8.0 + sin(u_time)*2.0); // Skala szumu animowana
-        spots = pow(spots, 3.0) * 1.5; // Wzmocnienie kontrastu
-        baseColor = mix(baseColor * 0.6, baseColor * 1.2, spots);
+        patternedBaseColor = vec3(0.4, 0.4, 0.9);
+        float spots = noise(v_localPos, 8.0 + sin(u_time)*2.0); 
+        spots = pow(spots, 3.0) * 1.5; 
+        patternedBaseColor = mix(patternedBaseColor * 0.6, patternedBaseColor * 1.2, spots);
 
-    } else if (u_bacteriaType == 3) { // Bacillus
-        baseColor = vec3(0.8, 0.6, 0.2);
-        // Wzór: paski w poprzek 
-        proceduralPattern = (cos(v_localPos.x * 15.0 + u_time) + 1.0) / 2.0;
-        baseColor = mix(baseColor * 0.7, baseColor * 1.0, proceduralPattern);
-        // Dodatkowe przyciemnienie na brzegach dla efektu 3D
-        float edgeFactor = 1.0 - pow(abs(v_localPos.x / 1.5), 4.0); 
-        edgeFactor *= (1.0 - pow(abs(v_localPos.y / 0.4), 4.0));
-        baseColor *= (0.5 + 0.5 * edgeFactor);
+    } else if (u_bacteriaType == 3) {  //Bacillus
+        patternedBaseColor = vec3(0.8, 0.6, 0.2);
+        float localProceduralPattern = (cos(v_localPos.x * 15.0 + u_time) + 1.0) / 2.0;
+        patternedBaseColor = mix(patternedBaseColor * 0.7, patternedBaseColor * 1.0, localProceduralPattern);
+       
+        float edgeFactorX = 1.0 - pow(abs(v_localPos.x / 1.5), 4.0); 
+        float edgeFactorY = 1.0 - pow(abs(v_localPos.y / 0.4), 4.0); 
+        float edgeFactor = clamp(edgeFactorX * edgeFactorY, 0.0, 1.0); 
+        patternedBaseColor *= (0.5 + 0.5 * edgeFactor);
 
     } else {
-        baseColor = vec3(0.7, 0.7, 0.7); 
+        patternedBaseColor = vec3(0.7, 0.7, 0.7);
     }
 
-    baseColor *= (0.3 + 0.7 * u_health); //  wpływ hp na jasność
-    out_FragColor = vec4(baseColor, alpha);
+    vec3 objectColor = patternedBaseColor * (0.3 + 0.7 * u_health);
+
+    float alpha = (u_health > 0.05) ? (0.2 + u_health * 0.8) : (u_health / 0.05 * 0.3);
+    alpha = clamp(alpha, 0.0, 1.0);
+
+    vec3 ambient = u_ambientColor * objectColor;
+
+    vec3 norm = normalize(v_normal_world);
+    vec3 lightDir = normalize(u_lightPosition_world - v_fragPos_world); 
+    float diff = max(dot(norm, lightDir), 0.0); 
+    vec3 diffuse = u_lightColor * diff * objectColor;
+
+    vec3 finalLitColor = ambient + diffuse; 
+
+    FragColor = vec4(finalLitColor, alpha);
 }

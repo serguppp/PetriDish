@@ -1,21 +1,33 @@
-#version 130 // GLSL 1.30
+#version 130
 
-in vec2 a_position;    // Lokalna pozycja wierzchołka z circuit
+// Atrybut wierzchołka z VBO - lokalne współrzędne modelu
+in vec2 a_position;
 
-uniform mat4 u_mvp;          // Macierz mvp
-uniform vec2 u_worldPosition; // Pozycja środka bakterii w świecie
-uniform float u_scale;       // Skala bakterii
+// Uniformy 
+uniform mat4 u_mvp;             // Macierz Model-View-Projection
+uniform vec2 u_worldPosition;   // Centralna pozycja bakterii w przestrzeni świata
+uniform float u_scale;          // Skala bakterii
 
-// dane przekazywane do fragment shadera
-out vec2 v_localPos;      // Lokalna pozycja wierzchołka 
-out vec2 v_worldPos_no_mvp; // Pozycja w świecie przed transformacją MVP
-
+// Wyjścia do Fragment Shadera 
+out vec2 v_localPos;        // Lokalne współrzędne dla wzorów proceduralnych
+out vec3 v_fragPos_world;   // Pozycja fragmentu w przestrzeni świata dla oświetlenia
+out vec3 v_normal_world;    // Wektor normalny w przestrzeni świata dla oświetlenia
 
 void main() {
-    vec2 scaled_local_pos = a_position * u_scale;
-    vec2 final_world_pos = scaled_local_pos + u_worldPosition;
-    gl_Position = u_mvp * vec4(final_world_pos, 0.0, 1.0);
+    // v_localPos to oryginalne współrzędne a_position,
+    v_localPos = a_position;
 
-    v_localPos = a_position; // Przekaż oryginalne lokalne współrzędne
-    v_worldPos_no_mvp = final_world_pos;
+    // Obliczanie pozycji wierzchołka w przestrzeni świata
+    vec2 scaled_model_pos = a_position * u_scale;
+    vec4 world_pos_of_vertex = vec4(u_worldPosition + scaled_model_pos, 0.0, 1.0); 
+
+    // Przekazanie pozycji w świecie do fragment shadera
+    v_fragPos_world = world_pos_of_vertex.xyz;
+
+    // Dla płaskich bakterii 2D na płaszczyźnie XY, normalna jest zawsze (0,0,1)
+    // skierowana w stronę dodatniej osi Z (w stronę kamery)
+    v_normal_world = vec3(0.0, 0.0, 1.0);
+
+    // Końcowa pozycja wierzchołka dla rasteryzacji
+    gl_Position = u_mvp * world_pos_of_vertex;
 }

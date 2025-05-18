@@ -240,7 +240,7 @@ int main(){
         glLoadIdentity();           
 
         // Renderowanie kolonii bakterii
-        renderer.renderColony(allBacteria, currentZoomLevel);
+        renderer.renderColony(allBacteria, currentZoomLevel, viewOffset); 
 
         //Renderowanie antybiotyków
         renderer.renderAntibioticEffects(currentZoomLevel);

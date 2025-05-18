@@ -40,6 +40,18 @@ private:
     std::map<BacteriaType, GLuint> bacteriaVAOs;         
     std::map<BacteriaType, GLuint> bacteriaVBOs_pos;  
     std::map<BacteriaType, int> bacteriaVertexCounts; 
+
+    // Lokalizacje uniformów dla oświetlenia
+    GLint bacteria_u_lightPosition_world_loc;
+    GLint bacteria_u_lightColor_loc;
+    GLint bacteria_u_ambientColor_loc;
+    GLint bacteria_u_viewPosition_world_loc; 
+
+    // Właściwości światła
+    glm::vec3 lightPosWorld;
+    glm::vec3 lightColor;
+    glm::vec3 ambientColor;
+
 public:
     Renderer(int width, int height);
     ~Renderer();
@@ -50,8 +62,8 @@ public:
     void beginFrame();
     void endFrame();
 
-    void renderBacteria(IBacteria& bacteria, float zoomLevel);
-    void renderColony(const std::vector<std::unique_ptr<IBacteria>>& allBacteria, float zoomLevel);
+    void renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::vec2& viewOffset);
+    void renderColony(const std::vector<std::unique_ptr<IBacteria>>& allBacteria, float zoomLevel, const glm::vec2& viewOffset);
 
     void addAntibioticEffect(const glm::vec2& worldPos, float strength, float radius, float lifetime = 2.0f);
     void updateAntibioticEffects(float deltaTime);
@@ -59,4 +71,8 @@ public:
 
     void setupBacteriaGeometry();
     void initBacteriaShader();
+
+    void setLightPosition(const glm::vec3& pos) { lightPosWorld = pos; }
+    void setLightColor(const glm::vec3& color) { lightColor = color; }
+    void setAmbientColor(const glm::vec3& color) { ambientColor = color; }
 };

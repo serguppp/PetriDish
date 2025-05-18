@@ -4,11 +4,14 @@ const float MICROSCOPIC_VIEW_THRESHOLD = 1.5f;
 const float BACTERIA_MODEL_SCALE_FACTOR = 0.5f;
 
 Renderer::Renderer(int width, int height)
-    : window(nullptr), windowWidth(width), windowHeight(height), successfullyInitialized(false)
+    : window(nullptr), windowWidth(width), windowHeight(height), successfullyInitialized(false),
+      lightPosWorld(static_cast<float>(width) / 2.0f, static_cast<float>(height) / 2.0f, 10.0f), // domyślna pozycja światła
+      lightColor(1.0f, 1.0f, 1.0f),         // domyślny kolor światła 
+      ambientColor(0.2f, 0.2f, 0.2f)        // domyślny kolor światła otoczenia
 {
     successfullyInitialized = initOpenGL(width, height);
     if (successfullyInitialized) {
-        initBacteriaShader();  
+        initBacteriaShader();
         setupBacteriaGeometry();
     }
 }
@@ -79,6 +82,7 @@ void Renderer::setupInitialProcedures() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_POINT_SMOOTH);
+    glEnable(GL_DEPTH_TEST); 
 }
 
 GLFWwindow* Renderer::getWindow() const {
@@ -110,12 +114,20 @@ void Renderer::initBacteriaShader() {
     bacteria_u_health_loc = shaderManager.getUniformLocation(programID, "u_health");
     bacteria_u_time_loc = shaderManager.getUniformLocation(programID, "u_time");
 
+    bacteria_u_lightPosition_world_loc = shaderManager.getUniformLocation(programID, "u_lightPosition_world");
+    bacteria_u_lightColor_loc = shaderManager.getUniformLocation(programID, "u_lightColor");
+    bacteria_u_ambientColor_loc = shaderManager.getUniformLocation(programID, "u_ambientColor");
+
     if (bacteria_u_mvp_loc == -1) std::cerr << "Renderer: Uniform u_mvp not found in bacteriaShader" << std::endl;
     if (bacteria_u_worldPosition_loc == -1) std::cerr << "Renderer: Uniform u_worldPosition not found" << std::endl;
     if (bacteria_u_scale_loc == -1) std::cerr << "Renderer: Uniform u_scale not found" << std::endl;
     if (bacteria_u_bacteriaType_loc == -1) std::cerr << "Renderer: Uniform u_bacteriaType not found" << std::endl;
     if (bacteria_u_health_loc == -1) std::cerr << "Renderer: Uniform u_health not found" << std::endl;
     if (bacteria_u_time_loc == -1) std::cerr << "Renderer: Uniform u_time not found" << std::endl;
+
+    if (bacteria_u_lightPosition_world_loc == -1) std::cerr << "Renderer: Uniform u_lightPosition_world not found" << std::endl;
+    if (bacteria_u_lightColor_loc == -1) std::cerr << "Renderer: Uniform u_lightColor not found" << std::endl;
+    if (bacteria_u_ambientColor_loc == -1) std::cerr << "Renderer: Uniform u_ambientColor not found" << std::endl;
 }
 
 void Renderer::setupBacteriaGeometry() {
@@ -173,7 +185,7 @@ void Renderer::setupBacteriaGeometry() {
      std::cout << "Renderer: Bacteria geometry setup complete." << std::endl;
 }
 
-void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel) {
+void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::vec2& viewOffset) {
     GLuint currentProgram = shaderManager.getShaderProgram("bacteriaShader");
 
     if (!bacteria.isAlive()) return;
@@ -252,10 +264,22 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel) {
         glUniformMatrix4fv(bacteria_u_mvp_loc, 1, GL_FALSE, glm::value_ptr(mvp_for_shader));
         glUniform2f(bacteria_u_worldPosition_loc, posVec4.x, posVec4.y);
         glUniform1f(bacteria_u_scale_loc, BACTERIA_MODEL_SCALE_FACTOR);
-
         glUniform1i(bacteria_u_bacteriaType_loc, static_cast<int>(type));
         glUniform1f(bacteria_u_health_loc, bacteria.getHealth());
         glUniform1f(bacteria_u_time_loc, static_cast<float>(glfwGetTime()));
+
+        // Pozycja światła 
+        glUniform3fv(bacteria_u_lightPosition_world_loc, 1, glm::value_ptr(lightPosWorld));
+        glUniform3fv(bacteria_u_lightColor_loc, 1, glm::value_ptr(lightColor));
+        glUniform3fv(bacteria_u_ambientColor_loc, 1, glm::value_ptr(ambientColor));
+
+        // Obliczanie pozycji kamery w świecie 
+        float view_width_world = static_cast<float>(windowWidth) / zoomLevel;
+        float view_height_world = static_cast<float>(windowHeight) / zoomLevel;
+        glm::vec3 viewPosWorld(viewOffset.x + view_width_world / 2.0f,
+                               viewOffset.y + view_height_world / 2.0f,
+                               100.0f); 
+        glUniform3fv(bacteria_u_viewPosition_world_loc, 1, glm::value_ptr(viewPosWorld));
 
         auto vao_it = bacteriaVAOs.find(type);
         if (vao_it != bacteriaVAOs.end() && bacteriaVertexCounts.count(type) && bacteriaVertexCounts.at(type) > 0) {
@@ -268,10 +292,10 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel) {
 }
 
 
-void Renderer::renderColony(const std::vector<std::unique_ptr<IBacteria>>& allBacteria, float zoomLevel) {
+void Renderer::renderColony(const std::vector<std::unique_ptr<IBacteria>>& allBacteria, float zoomLevel, const glm::vec2& viewOffset) {
     for (const auto& bacteriaPtr : allBacteria) {
         if (bacteriaPtr) {
-            renderBacteria(*bacteriaPtr, zoomLevel);
+            renderBacteria(*bacteriaPtr, zoomLevel, viewOffset); 
         }
     }
 }
