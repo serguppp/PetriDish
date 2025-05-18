@@ -156,8 +156,8 @@ void setupGuiCallbacks(GUIRenderer &guiRenderer, Renderer& renderer, std::vector
     };
 
     guiRenderer.onLightRangeChanged = [&](float range) {
-        renderer.setLightRange(range*1.4);
-        renderer.setGlowRadius(range);
+        renderer.setLightRange(range*1.2);
+        renderer.setGlowRadius(range*1.2);
     };
 }
 
