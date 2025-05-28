@@ -200,7 +200,7 @@ int main(){
 
         glfwPollEvents();
 
-        // --- sekcja UPDATE ---
+        // === sekcja UPDATE ===
         // co klatkę aktualizujemy divisionTimer bakterii oraz sprawdzamy, czy nadaje się do usunięcia
         // a także co klatkę aktualizujemy działanie antybiotyku na bakterie
         for (auto& bacteria : allBacteria) {
@@ -209,6 +209,29 @@ int main(){
             }
         }
         
+        // rozmnażanie bakterii
+        std::vector<std::unique_ptr<IBacteria>> newBacteria;
+        for (auto& bacteria : allBacteria) {
+            if (bacteria && bacteria->canDivide()) {
+                bacteria->resetDivisionTimer(); 
+                // ograniczenie liczby bakterii, aby uniknąć eksplozji populacji i problemów z wydajnością
+                const size_t MAX_BACTERIA_COUNT = 10000; 
+                if (allBacteria.size() + newBacteria.size() < MAX_BACTERIA_COUNT) {
+                    IBacteria* childRawPtr = bacteria->clone();
+                    if (childRawPtr) {
+                        newBacteria.push_back(std::unique_ptr<IBacteria>(childRawPtr));
+                    }
+                }
+
+            }
+        }
+
+        for (auto& child : newBacteria) {
+            allBacteria.push_back(std::move(child));
+        }
+
+        
+        // usuwanie bakterii
         allBacteria.erase(
             std::remove_if(allBacteria.begin(), allBacteria.end(),
                            [](const std::unique_ptr<IBacteria>& b) { return !b || !b->isAlive(); }),

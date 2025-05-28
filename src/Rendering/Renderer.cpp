@@ -329,9 +329,10 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::v
 
 // Renderowanie bakterii
 void Renderer::renderColony(const std::vector<std::unique_ptr<IBacteria>>& allBacteria, float zoomLevel, const glm::vec2& viewOffset) {
-    for (const auto& bacteriaPtr : allBacteria) {
+    for (auto it = allBacteria.rbegin(); it != allBacteria.rend(); ++it) {
+        const std::unique_ptr<IBacteria>& bacteriaPtr = *it; // Uzyskaj referencję do unique_ptr
         if (bacteriaPtr) {
-            renderBacteria(*bacteriaPtr, zoomLevel, viewOffset); 
+            renderBacteria(*bacteriaPtr, zoomLevel, viewOffset);
         }
     }
 }

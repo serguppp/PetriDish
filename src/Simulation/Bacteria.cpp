@@ -1,23 +1,22 @@
 #include "Bacteria.h"
-#include <iostream> 
 
 Bacteria::Bacteria(glm::vec4 initialPosition, BacteriaType type)
     : position(initialPosition),
       bacteriaType(type),
       stats(getStatsForType(type)), 
-      divisionTimer(0.0f) {
+      divisionTimer(stats.divisionInterval) {
 }
 
 void Bacteria::update(float deltaTime) {
     if (!isAlive()) {
         return;
     }
-    divisionTimer += deltaTime;
+    divisionTimer -= deltaTime;
 }
 
 bool Bacteria::canDivide() const {
 
-    return isAlive() && stats.health > 0.7f && divisionTimer >= stats.divisionInterval; 
+    return isAlive() && stats.health > 0.7f && divisionTimer <= 0.0f; 
 }
 
 void Bacteria::applyAntibiotic(float intensity) {
@@ -35,12 +34,15 @@ void Bacteria::applyAntibiotic(float intensity) {
 }
 
 IBacteria* Bacteria::clone() const {
-    Bacteria* newBacteria = new Bacteria(this->position, this->bacteriaType);
-    return newBacteria;
+    float offsetRadius = 0.5f; 
+    glm::vec2 randomOffset = glm::diskRand(offsetRadius);
+    glm::vec4 newPosition = position + glm::vec4(randomOffset.x, randomOffset.y, 0.0f, 0.0f);    
+    Bacteria* child = new Bacteria(newPosition, this->bacteriaType);
+    return child;
 }
 
 void Bacteria::resetDivisionTimer() {
-    divisionTimer = 0.0f;
+    divisionTimer = stats.divisionInterval;
 }
 
 bool Bacteria::isAlive() const {
