@@ -201,6 +201,8 @@ int main(){
         glfwPollEvents();
 
         // --- sekcja UPDATE ---
+        // co klatkę aktualizujemy divisionTimer bakterii oraz sprawdzamy, czy nadaje się do usunięcia
+        // a także co klatkę aktualizujemy działanie antybiotyku na bakterie
         for (auto& bacteria : allBacteria) {
             if (bacteria) {
                 bacteria->update(deltaTime);
@@ -233,7 +235,7 @@ int main(){
         float view_width_world = static_cast<float>(WINDOW_WIDTH) / currentZoomLevel;
         float view_height_world = static_cast<float>(WINDOW_HEIGHT) / currentZoomLevel;
 
-        // Definiowanie rogów szalki
+        // Definiowanie rogów szalki (mapy świata)
         float ortho_left = viewOffset.x;
         float ortho_right = viewOffset.x + view_width_world;
         float ortho_bottom = viewOffset.y;
@@ -244,6 +246,7 @@ int main(){
         glMatrixMode(GL_MODELVIEW); 
         glLoadIdentity();           
 
+        //Przygotowywanie macierzy przesyłanych do programiu cieniującego
         GLfloat projMatrixGL[16];
         GLfloat modelViewMatrixGL[16];
         glGetFloatv(GL_PROJECTION_MATRIX, projMatrixGL);
@@ -254,10 +257,10 @@ int main(){
         // Renderowanie kolonii bakterii
         renderer.renderColony(allBacteria, currentZoomLevel, viewOffset); 
 
-        //Renderowanie antybiotyków
+        //Renderowanie antybiotyków:
         renderer.renderAntibioticEffects(currentZoomLevel);
 
-         // Renderowanie poświaty 
+        // Renderowanie poświaty 
         renderer.renderGlowEffect(projectionMatrix, modelViewMatrix, currentZoomLevel);
 
         // Renderowanie klatki ImGui na wierzchu sceny

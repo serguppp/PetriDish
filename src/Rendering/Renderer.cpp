@@ -16,6 +16,7 @@ Renderer::Renderer(int width, int height)
 {
     successfullyInitialized = initOpenGL(width, height);
     if (successfullyInitialized) {
+        // Inicjalizacja shaderów po inicjalizacji środowiska openGL
         initBacteriaShader();
         setupBacteriaGeometry();
         initGlowShader();     
@@ -52,6 +53,7 @@ bool Renderer::initOpenGL(int width, int height) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
+    //Tworzenie okna
     window = glfwCreateWindow(width, height, "PetriDish Simulation", nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create GLFW window in Renderer" << std::endl;
@@ -64,6 +66,7 @@ bool Renderer::initOpenGL(int width, int height) {
     }
     glfwMakeContextCurrent(window);
 
+    //Inicjalizacja glew
     GLenum err = glewInit();
     if (err != GLEW_OK) {
         std::cerr << "Failed to initialize GLEW in Renderer: " << glewGetErrorString(err) << std::endl;
@@ -75,7 +78,9 @@ bool Renderer::initOpenGL(int width, int height) {
     std::cout << "OpenGL Version: " << glGetString(GL_VERSION) << std::endl;
     std::cout << "GLSL Version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 
+    //Uruchamianie podstawowych ustawień renderowania naszego świata
     setupInitialProcedures();
+    // v-sync
     glfwSwapInterval(1);
     return true;
 }
@@ -84,28 +89,32 @@ bool Renderer::isInitialized() const {
     return successfullyInitialized;
 }
 
+// Podstawowe ustawienia renderowania naszego swiata
 void Renderer::setupInitialProcedures() {
-    glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_POINT_SMOOTH);
-    glEnable(GL_DEPTH_TEST); 
+    glClearColor(0.1f, 0.1f, 0.15f, 1.0f); // kolor tla
+    glEnable(GL_BLEND); // wlaczanie blendingu czyli mieszania kolorów
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // ustawienia blendingu kolorów
+    glEnable(GL_POINT_SMOOTH); // wygladzanie punktów GL_Points
+    glEnable(GL_DEPTH_TEST);  // testowanie głębi, z-bufor
 }
 
 GLFWwindow* Renderer::getWindow() const {
     return window;
 }
 
+// Co klatkę resetujemy bufor koloru i głębbi
 void Renderer::beginFrame() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
+// Co klatkę zamieniamy bufor z narysowna scena - tylni z przednim 
 void Renderer::endFrame() {
     if (window) 
         glfwSwapBuffers(window);
     
 }
 
+// Inicjalizacja shadera bakterii
 void Renderer::initBacteriaShader() {
     GLuint programID = shaderManager.loadShaderProgram("bacteriaShader", "shaders/bacteria.vert", "shaders/bacteria.frag");
 
@@ -114,18 +123,19 @@ void Renderer::initBacteriaShader() {
         return;
     }
 
-    bacteria_u_mvp_loc = shaderManager.getUniformLocation(programID, "u_mvp");
-    bacteria_u_worldPosition_loc = shaderManager.getUniformLocation(programID, "u_worldPosition");
-    bacteria_u_scale_loc = shaderManager.getUniformLocation(programID, "u_scale");
-    bacteria_u_bacteriaType_loc = shaderManager.getUniformLocation(programID, "u_bacteriaType");
-    bacteria_u_health_loc = shaderManager.getUniformLocation(programID, "u_health");
-    bacteria_u_time_loc = shaderManager.getUniformLocation(programID, "u_time");
+    // pobieranie lokalizacji uniformów z shadera
+    bacteria_u_mvp_loc = shaderManager.getUniformLocation(programID, "u_mvp"); //macierz mvp
+    bacteria_u_worldPosition_loc = shaderManager.getUniformLocation(programID, "u_worldPosition"); //pozycja bakterii
+    bacteria_u_scale_loc = shaderManager.getUniformLocation(programID, "u_scale"); //skala obiektu bakterii
+    bacteria_u_bacteriaType_loc = shaderManager.getUniformLocation(programID, "u_bacteriaType"); //typ bakterii
+    bacteria_u_health_loc = shaderManager.getUniformLocation(programID, "u_health"); // hp bakterii
+    bacteria_u_time_loc = shaderManager.getUniformLocation(programID, "u_time"); // zmienna czasowa do animacji
 
-    bacteria_u_lightPosition_world_loc = shaderManager.getUniformLocation(programID, "u_lightPosition_world");
-    bacteria_u_lightColor_loc = shaderManager.getUniformLocation(programID, "u_lightColor");
-    bacteria_u_ambientColor_loc = shaderManager.getUniformLocation(programID, "u_ambientColor");
-    bacteria_u_viewPosition_world_loc = shaderManager.getUniformLocation(programID, "u_viewPosition_world"); 
-    bacteria_u_lightRange_loc = shaderManager.getUniformLocation(programID, "u_lightRange"); 
+    bacteria_u_lightPosition_world_loc = shaderManager.getUniformLocation(programID, "u_lightPosition_world"); // pozycja swiatla w przestrzeni swiata
+    bacteria_u_lightColor_loc = shaderManager.getUniformLocation(programID, "u_lightColor"); // emitowany kolor przez zrodlo swiatla
+    bacteria_u_ambientColor_loc = shaderManager.getUniformLocation(programID, "u_ambientColor"); // kolor siwatla otoczenia 
+    bacteria_u_viewPosition_world_loc = shaderManager.getUniformLocation(programID, "u_viewPosition_world");  //pozycja kamery
+    bacteria_u_lightRange_loc = shaderManager.getUniformLocation(programID, "u_lightRange");  // zasieg swiatla
 
     if (bacteria_u_mvp_loc == -1) std::cerr << "Renderer: Uniform u_mvp not found in bacteriaShader" << std::endl;
     if (bacteria_u_worldPosition_loc == -1) std::cerr << "Renderer: Uniform u_worldPosition not found" << std::endl;
@@ -141,6 +151,7 @@ void Renderer::initBacteriaShader() {
     if (bacteria_u_lightRange_loc == -1) std::cerr << "Renderer: Uniform u_lightRange not found" << std::endl; 
 }
 
+// Przekazywanie informacji o geometrii danych bakterii do renderera na podstawie circuit w BacteriaStats
 void Renderer::setupBacteriaGeometry() {
     GLuint programID = shaderManager.getShaderProgram("bacteriaShader");
     if (programID == 0) {
@@ -150,7 +161,7 @@ void Renderer::setupBacteriaGeometry() {
 
     for (int i = 0; i <= static_cast<int>(BacteriaType::Bacillus); ++i) { 
         BacteriaType type = static_cast<BacteriaType>(i);
-        // Uzyskaj statystyki) dla danego typu bakterii
+        // Uzyskaj statystyki dla danego typu bakterii
         BacteriaStats stats = getStatsForType(type); 
 
         if (stats.circuit.empty()) {
@@ -158,6 +169,7 @@ void Renderer::setupBacteriaGeometry() {
             continue;
         }
 
+        // Punkty w obwodzie typu bakterii przekładamy na wierzchołki
         std::vector<glm::vec2> vertices;
         for (const auto& p : stats.circuit) {
             vertices.push_back(glm::vec2(p.first, p.second));
@@ -169,16 +181,18 @@ void Renderer::setupBacteriaGeometry() {
         }
         bacteriaVertexCounts[type] = static_cast<int>(vertices.size());
 
-
+        // Generowanie vertex array object i vertex buffer object
         GLuint vao_id, vbo_pos_id;
         glGenVertexArrays(1, &vao_id);
         glGenBuffers(1, &vbo_pos_id);
 
+        // aktywacja vao i vbo; wyslanie danych wierzchołków do gpu
         glBindVertexArray(vao_id);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo_pos_id);
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec2), vertices.data(), GL_STATIC_DRAW);
 
+        // konfiguracja atrybutów wierzchołków przez shader
         GLint posAttribLoc = glGetAttribLocation(programID, "a_position");
         if (posAttribLoc != -1) {
             glVertexAttribPointer(posAttribLoc, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
@@ -187,6 +201,7 @@ void Renderer::setupBacteriaGeometry() {
              std::cerr << "Renderer: a_position attribute not found in bacteriaShader for geometry setup." << std::endl;
         }
 
+        // Zapis VAO i VBO dla danego typu bakterii w shaderze
         bacteriaVAOs[type] = vao_id;
         bacteriaVBOs_pos[type] = vbo_pos_id;
 
@@ -199,16 +214,20 @@ void Renderer::setupBacteriaGeometry() {
 void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::vec2& viewOffset) {
     GLuint currentProgram = shaderManager.getShaderProgram("bacteriaShader");
 
+    // Jeżeli jakimś cudem w systemie istnieje bakteria, która nie żyje, to nie renderujemy jej
     if (!bacteria.isAlive()) return;
 
+    // Pobieranie pozycji i typu bakterii
     glm::vec4 posVec4 = bacteria.getPos();
     BacteriaType type = bacteria.getBacteriaType();
 
+    // Widok bakterii zależny  od zoomu
     if (zoomLevel < MICROSCOPIC_VIEW_THRESHOLD) {
         // Widok makro: kolonia bakterii jako punkty - bez shaderów, legacy OpenGL
         shaderManager.useShaderProgram(0);
         glDisable(GL_TEXTURE_2D);   
 
+        // Kolory różnych typów bakterii
         switch (type) {
             case BacteriaType::Cocci: glColor3f(0.9f, 0.4f, 0.4f); break;
             case BacteriaType::Diplococcus: glColor3f(0.4f, 0.9f, 0.4f); break;
@@ -217,6 +236,7 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::v
             default: glColor3f(0.7f, 0.7f, 0.7f); break;
         }
 
+        // Rysowanie  bakterii jako punkty
         float pointSize = 3.0f;
         glPointSize(pointSize);
         glBegin(GL_POINTS);
@@ -225,11 +245,11 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::v
 
     } else {
         // Widok mikro z shaderami
-        if (currentProgram == 0) { // jeśli shader niezaładowany
-            shaderManager.useShaderProgram(0); 
-            glPushMatrix();
-            glTranslatef(posVec4.x, posVec4.y, 0.0f);
-            glScalef(BACTERIA_MODEL_SCALE_FACTOR, BACTERIA_MODEL_SCALE_FACTOR, 1.0f);
+        if (currentProgram == 0) { // jeśli shader niezaładowany; awaryjne rysowanie jako wielokąty zależne od circuit
+            shaderManager.useShaderProgram(0);  
+            glPushMatrix(); // zapisanie macierzy mvp
+            glTranslatef(posVec4.x, posVec4.y, 0.0f); //przesuwanie 
+            glScalef(BACTERIA_MODEL_SCALE_FACTOR, BACTERIA_MODEL_SCALE_FACTOR, 1.0f); //skalowanie
             const auto& circuit = bacteria.getCircuit();
             if (!circuit.empty()) {
                 float health = bacteria.getHealth();
@@ -240,6 +260,7 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::v
                     case BacteriaType::Bacillus: glColor3f(0.8f, 0.6f, 0.2f); break;
                     default: glColor3f(0.7f, 0.7f, 0.7f); break;
                 }
+                //Modyfikacja koloru bakterii na podstawie zdrowia
                 GLfloat baseColor[4]; glGetFloatv(GL_CURRENT_COLOR, baseColor);
                 glColor4f(baseColor[0] * health, baseColor[1] * health, baseColor[2] * health, (health > 0.1f ? 1.0f : health * 2.0f) );
                 glBegin(GL_POLYGON);
@@ -248,6 +269,7 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::v
                 }
                 glEnd();
             }
+            //przywracanie macierzy mvp
             glPopMatrix();
             return; 
         }
@@ -257,21 +279,22 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::v
         // --- Macierze ---
         // W main.cpp jest już ustawione glOrtho i glLoadIdentity dla MODELVIEW.
         // Shader vertex (bacteria.vert) oczekuje:
-        // u_mvp: (projection * view) - globalne transformacje kamery
-        // u_worldPosition: pozycja środka bakterii
+        // u_mvp: (projection * view) - macierze bakterii
+        // u_worldPosition: pozycja środka swiata
         // u_scale: skala bakterii
         // Nalezy pobrac aktualne macierze widoku i projekcji z main.cpp aby je przenieść do shadera 
 
         GLfloat projMatrixGL[16];
         GLfloat modelViewMatrixGL[16];
 
-        glGetFloatv(GL_PROJECTION_MATRIX, projMatrixGL);
-        glGetFloatv(GL_MODELVIEW_MATRIX, modelViewMatrixGL); 
+        glGetFloatv(GL_PROJECTION_MATRIX, projMatrixGL); // aktualna macierz projekcji
+        glGetFloatv(GL_MODELVIEW_MATRIX, modelViewMatrixGL);  // aktualna macierz ModelView
 
         glm::mat4 projection = glm::make_mat4(projMatrixGL);
         glm::mat4 view = glm::make_mat4(modelViewMatrixGL);
         glm::mat4 mvp_for_shader = projection * view; 
 
+        //Przekazanie macierzy jako uniformy do shadera
         glUniformMatrix4fv(bacteria_u_mvp_loc, 1, GL_FALSE, glm::value_ptr(mvp_for_shader));
         glUniform2f(bacteria_u_worldPosition_loc, posVec4.x, posVec4.y);
         glUniform1f(bacteria_u_scale_loc, BACTERIA_MODEL_SCALE_FACTOR);
@@ -293,6 +316,7 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::v
                                100.0f); 
         glUniform3fv(bacteria_u_viewPosition_world_loc, 1, glm::value_ptr(viewPosWorld));
 
+        // Rysowanie VAO bakterii
         auto vao_it = bacteriaVAOs.find(type);
         if (vao_it != bacteriaVAOs.end() && bacteriaVertexCounts.count(type) && bacteriaVertexCounts.at(type) > 0) {
             glBindVertexArray(vao_it->second);
@@ -303,7 +327,7 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::v
     }
 }
 
-
+// Renderowanie bakterii
 void Renderer::renderColony(const std::vector<std::unique_ptr<IBacteria>>& allBacteria, float zoomLevel, const glm::vec2& viewOffset) {
     for (const auto& bacteriaPtr : allBacteria) {
         if (bacteriaPtr) {
@@ -312,10 +336,12 @@ void Renderer::renderColony(const std::vector<std::unique_ptr<IBacteria>>& allBa
     }
 }
 
+// Dodawanie antybiotyków do listy 
 void Renderer::addAntibioticEffect(const glm::vec2& worldPos, float strength, float radius, float lifetime) {
     activeAntibiotics.push_back({worldPos, strength, radius, 0.0f, lifetime});
 }
 
+// Funkcja odpowiedzialna za działanie antybiotyku na bakterie
 void Renderer::updateAntibioticEffects(float deltaTime) {
     for (auto& antibiotic : activeAntibiotics) {
         antibiotic.timeApplied += deltaTime;
@@ -329,6 +355,7 @@ void Renderer::updateAntibioticEffects(float deltaTime) {
     );
 }
 
+// Funkcja odpowiedzialna za renderowanie poświaty antybiotyku, która kurczy się w czasie
 void Renderer::renderAntibioticEffects(float zoomLevel) {
     shaderManager.useShaderProgram(0); 
     glEnable(GL_BLEND); 
