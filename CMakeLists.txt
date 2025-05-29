@@ -68,6 +68,31 @@ add_custom_command(TARGET PetriDish POST_BUILD
         "${OUTPUT_SHADER_DIR}/glow.frag"
     COMMENT "Copying glow.frag"
 )
+
+add_custom_command(TARGET PetriDish POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SHADER_DIR}/point.vert"
+        "${OUTPUT_SHADER_DIR}/point.vert"
+    COMMENT "Copying point.vert"
+)
+add_custom_command(TARGET PetriDish POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SHADER_DIR}/point.frag"
+        "${OUTPUT_SHADER_DIR}/point.frag"
+    COMMENT "Copying point.frag"
+)
+add_custom_command(TARGET PetriDish POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SHADER_DIR}/antibiotic.vert"
+        "${OUTPUT_SHADER_DIR}/antibiotic.vert"
+    COMMENT "Copying antibiotic.vert"
+)
+add_custom_command(TARGET PetriDish POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SHADER_DIR}/antibiotic.frag"
+        "${OUTPUT_SHADER_DIR}/antibiotic.frag"
+    COMMENT "Copying antibiotic.frag"
+)
 set(GLEW_DLL_PATH "${CMAKE_SOURCE_DIR}/external/glew/bin/Release/Win32/glew32.dll")
 
 if(EXISTS "${GLEW_DLL_PATH}")

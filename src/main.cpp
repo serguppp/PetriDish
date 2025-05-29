@@ -17,9 +17,6 @@
 #include <iostream>
 #include <vector>
 #include <memory>
-#include <thread>
-#include <chrono>
-#include <functional>
 
 const int WINDOW_WIDTH = 1024;
 const int WINDOW_HEIGHT = 768;
@@ -102,8 +99,6 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
 void setupImGUI(GLFWwindow *window){
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO();
-    (void)io;
     ImGui::StyleColorsDark();
 
     ImGui_ImplGlfw_InitForOpenGL(window, false); 
@@ -156,8 +151,8 @@ void setupGuiCallbacks(GUIRenderer &guiRenderer, Renderer& renderer, std::vector
     };
 
     guiRenderer.onLightRangeChanged = [&](float range) {
-        renderer.setLightRange(range*1.2);
-        renderer.setGlowRadius(range*1.2);
+        renderer.setLightRange(range*1.2f);
+        renderer.setGlowRadius(range*1.2f);
     };
 }
 
@@ -250,41 +245,30 @@ int main(){
         // Rozpoczęcie klatki renderowania sceny
         renderer.beginFrame();
 
-        // Ustawienie macierzy projekcji dla efektu zoomu i przesuwania
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-
         // Obliczanie szerokości i wysokości widoku w jednostkach świata
         float view_width_world = static_cast<float>(WINDOW_WIDTH) / currentZoomLevel;
         float view_height_world = static_cast<float>(WINDOW_HEIGHT) / currentZoomLevel;
 
-        // Definiowanie rogów szalki (mapy świata)
+        // Definiowanie rogów szalki (mapy świata) - projekcia ortogonalna
         float ortho_left = viewOffset.x;
         float ortho_right = viewOffset.x + view_width_world;
         float ortho_bottom = viewOffset.y;
         float ortho_top = viewOffset.y + view_height_world;
 
-        glOrtho(ortho_left, ortho_right, ortho_bottom, ortho_top, -1.0, 1.0);
+        glm::mat4 projectionMatrix = glm::ortho(ortho_left, ortho_right, ortho_bottom, ortho_top, -1.0f, 1.0f);
+        glm::mat4 viewMatrix = glm::mat4(1.0f);
 
-        glMatrixMode(GL_MODELVIEW); 
-        glLoadIdentity();           
-
-        //Przygotowywanie macierzy przesyłanych do programiu cieniującego
-        GLfloat projMatrixGL[16];
-        GLfloat modelViewMatrixGL[16];
-        glGetFloatv(GL_PROJECTION_MATRIX, projMatrixGL);
-        glGetFloatv(GL_MODELVIEW_MATRIX, modelViewMatrixGL);
-        glm::mat4 projectionMatrix = glm::make_mat4(projMatrixGL);
-        glm::mat4 modelViewMatrix = glm::make_mat4(modelViewMatrixGL);
+        // Poniższa macierz będzie przekazana do renderera i do shaderów
+        glm::mat4 viewProjectionMatrix = projectionMatrix * viewMatrix;
 
         // Renderowanie kolonii bakterii
-        renderer.renderColony(allBacteria, currentZoomLevel, viewOffset); 
+        renderer.renderColony(allBacteria, currentZoomLevel, viewProjectionMatrix); 
 
         //Renderowanie antybiotyków:
-        renderer.renderAntibioticEffects(currentZoomLevel);
+        renderer.renderAntibioticEffects(viewProjectionMatrix);
 
         // Renderowanie poświaty 
-        renderer.renderGlowEffect(projectionMatrix, modelViewMatrix, currentZoomLevel);
+        renderer.renderGlowEffect(projectionMatrix, viewMatrix, currentZoomLevel);
 
         // Renderowanie klatki ImGui na wierzchu sceny
         ImGui::Render();
