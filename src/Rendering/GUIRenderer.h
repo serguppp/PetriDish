@@ -24,8 +24,7 @@ public:
     std::function<void(float strength, float radius, int screenX, int screenY)> onApplyAntibiotic;
     std::function<void(float range)> onLightRangeChanged; 
 
-    void render(const glm::vec2& viewOffset, float zoomLevel, int windowHeight);
-
+    void render(const glm::vec2& viewOffset, float zoomLevel, int windowHeight, bool is3DView); 
     void setBacteriaCount(size_t count);
 
 };

@@ -35,8 +35,15 @@ void Bacteria::applyAntibiotic(float intensity) {
 
 IBacteria* Bacteria::clone() const {
     float offsetRadius = 0.5f; 
+    float offsetZ = 0.05f;
     glm::vec2 randomOffset = glm::diskRand(offsetRadius);
-    glm::vec4 newPosition = position + glm::vec4(randomOffset.x, randomOffset.y, 0.0f, 0.0f);    
+    glm::vec4 newPosition = position + glm::vec4(randomOffset.x, randomOffset.y, offsetZ, 0.0f);    
+
+    const float maxZ = 2.0f;
+    if (newPosition.z > maxZ) {
+        newPosition.z = maxZ - glm::linearRand(0.0f, 0.1f); 
+    }
+
     Bacteria* child = new Bacteria(newPosition, this->bacteriaType);
     return child;
 }

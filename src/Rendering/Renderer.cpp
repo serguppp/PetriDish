@@ -34,6 +34,9 @@ Renderer::Renderer(int width, int height)
         
         initGlowShader();     
         setupGlowGeometry();  
+
+        initPetriDishShader();
+        setupPetriDishGeometry(); 
     }
 }
 
@@ -57,6 +60,13 @@ Renderer::~Renderer() {
     if (antibioticCircleVBO_vertexPosition != 0) glDeleteBuffers(1, &antibioticCircleVBO_vertexPosition);
     if (glowVAO != 0) glDeleteVertexArrays(1, &glowVAO);
     if (glowVBO_vertexPosition != 0) glDeleteBuffers(1, &glowVBO_vertexPosition);
+
+    if (dishBaseVAO != 0) glDeleteVertexArrays(1, &dishBaseVAO);
+    if (dishBaseVBO != 0) glDeleteBuffers(1, &dishBaseVBO);
+    if (dishLidVAO != 0) glDeleteVertexArrays(1, &dishLidVAO);
+    if (dishLidVBO != 0) glDeleteBuffers(1, &dishLidVBO);
+    if (agarVAO != 0) glDeleteVertexArrays(1, &agarVAO);
+    if (agarVBO != 0) glDeleteBuffers(1, &agarVBO);
 
     if (!activeAntibiotics.empty()) {
          activeAntibiotics.clear();
@@ -113,7 +123,8 @@ bool Renderer::isInitialized() const {
 void Renderer::setupInitialProcedures() {
     glClearColor(0.1f, 0.1f, 0.15f, 1.0f); // Ustawienie koloru tła
     glEnable(GL_BLEND); // Włączenie mieszania kolorów (blending)
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Standardowe ustawienie blendingu dla przezroczystości
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE); // Addytywny blending
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Standardowe ustawienie blendingu dla przezroczystości
     glEnable(GL_DEPTH_TEST);  // Włączenie testu głębi (Z-bufor)
 }
 
@@ -474,7 +485,7 @@ void Renderer::renderGlowEffect(const glm::mat4& projection, const glm::mat4& vi
     glUniform2f(glow_u_screenResolution_loc, static_cast<float>(windowWidth), static_cast<float>(windowHeight));
     glUniform3fv(glow_u_glowEffectColor_loc, 1, glm::value_ptr(glowEffectColor));
 
-    // Promień poświaty w pikselach, skalowany przez zoom dla spójnego wyglądu
+    // Promień poświaty w pikselach
     float glowRadiusPixels = glowEffectRadius * currentZoomLevel; 
     glUniform1f(glow_u_glowEffectRadius_loc, glowRadiusPixels);
     glUniform1f(glow_u_glowEffectIntensity_loc, glowEffectIntensityFactor * lightIntensity); 
@@ -487,5 +498,135 @@ void Renderer::renderGlowEffect(const glm::mat4& projection, const glm::mat4& vi
     glBindVertexArray(0);
 
     glDisable(GL_BLEND);
+    shaderManager.useShaderProgram(0);
+
+}
+
+void Renderer::setupMeshGeometry(const char* modelPath, GLuint& vao, GLuint& vbo, size_t& vertexCount) {
+    std::vector<Vertex> vertices;
+    if (!loadOBJ(modelPath, vertices) || vertices.empty()) {
+        std::cerr << "Renderer: Nie udało się załadować modelu lub model jest pusty: " << modelPath << std::endl;
+        vao = 0; vbo = 0; vertexCount = 0;
+        return;
+    }
+    vertexCount = vertices.size();
+
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Position));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+    std::cout << "INFO::Renderer: Załadowano model " << modelPath << " (" << vertexCount << " wierzchołków)" << std::endl;
+}
+
+void Renderer::initPetriDishShader() {
+    petriDishShaderProgramID = shaderManager.loadShaderProgram("petriDishShader", "shaders/petridish.vert", "shaders/petridish.frag");
+    if (petriDishShaderProgramID == 0) {
+        std::cerr << "Renderer: Błąd ładowania programu shadera dla szalki!" << std::endl;
+        return;
+    }
+    petri_u_modelMatrix_loc = shaderManager.getUniformLocation(petriDishShaderProgramID, "u_modelMatrix");
+    petri_u_viewProjectionMatrix_loc = shaderManager.getUniformLocation(petriDishShaderProgramID, "u_viewProjectionMatrix");
+    petri_u_normalMatrix_loc = shaderManager.getUniformLocation(petriDishShaderProgramID, "u_normalMatrix");
+    petri_u_objectColor_loc = shaderManager.getUniformLocation(petriDishShaderProgramID, "u_objectColor");
+    petri_u_objectAlpha_loc = shaderManager.getUniformLocation(petriDishShaderProgramID, "u_objectAlpha");
+    
+    petri_u_lightPosWorld_loc = shaderManager.getUniformLocation(petriDishShaderProgramID, "u_lightPosWorld");
+    petri_u_lightColor_loc = shaderManager.getUniformLocation(petriDishShaderProgramID, "u_lightColor");
+    petri_u_ambientColor_loc = shaderManager.getUniformLocation(petriDishShaderProgramID, "u_ambientColor");
+    petri_u_cameraPositionWorld_loc = shaderManager.getUniformLocation(petriDishShaderProgramID, "u_cameraPositionWorld");
+    petri_u_lightRange_loc = shaderManager.getUniformLocation(petriDishShaderProgramID, "u_lightRange");
+}
+
+void Renderer::setupPetriDishGeometry() {
+    setupMeshGeometry("assets/models/szalka.obj", dishBaseVAO, dishBaseVBO, dishBaseVertexCount);
+    setupMeshGeometry("assets/models/przykrywka.obj", dishLidVAO, dishLidVBO, dishLidVertexCount);
+    setupMeshGeometry("assets/models/agar.obj", agarVAO, agarVBO, agarVertexCount);
+}
+
+void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm::mat4& viewMatrix) {
+    if (petriDishShaderProgramID == 0) return;
+
+    shaderManager.useShaderProgram(petriDishShaderProgramID);
+
+    // Uniformy dla wszystkich części szalki 
+    glUniform3fv(petri_u_lightPosWorld_loc, 1, glm::value_ptr(lightPosWorld));
+    glUniform3fv(petri_u_lightColor_loc, 1, glm::value_ptr(lightColor));
+    glUniform3fv(petri_u_ambientColor_loc, 1, glm::value_ptr(ambientColor));
+    glm::vec3 cameraPosForShader = glm::vec3(glm::inverse(viewMatrix)[3]);
+    glUniform3fv(petri_u_cameraPositionWorld_loc, 1, glm::value_ptr(cameraPosForShader));
+    glUniform1f(petri_u_lightRange_loc, lightRange * 5.0f); 
+    
+    glUniformMatrix4fv(petri_u_viewProjectionMatrix_loc, 1, GL_FALSE, glm::value_ptr(viewProjectionMatrix));
+
+    // Renderowanie podstawy szalki
+    if (dishBaseVAO != 0 && dishBaseVertexCount > 0) {
+        glm::mat4 modelMatrix = glm::mat4(1.0f); 
+        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
+        
+        glUniformMatrix4fv(petri_u_modelMatrix_loc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
+        glUniformMatrix3fv(petri_u_normalMatrix_loc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+        
+        glUniform3f(petri_u_objectColor_loc, 0.85f, 0.9f, 0.95f); // Kolor szkła
+        glUniform1f(petri_u_objectAlpha_loc, 0.25f);            // Alpha szkła
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE); 
+
+        glBindVertexArray(dishBaseVAO);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(dishBaseVertexCount));
+        
+    }
+
+    // Renderowanie agaru 
+    if (agarVAO != 0 && agarVertexCount > 0) {
+        glm::mat4 modelMatrix = glm::mat4(1.0f); 
+        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
+
+        glUniformMatrix4fv(petri_u_modelMatrix_loc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
+        glUniformMatrix3fv(petri_u_normalMatrix_loc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+
+        glUniform3f(petri_u_objectColor_loc, 0.8f, 0.15f, 0.15f); // Kolor agaru
+        glUniform1f(petri_u_objectAlpha_loc, 0.8f);             // Alpha agaru
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
+        glDepthMask(GL_FALSE); 
+
+        glBindVertexArray(agarVAO);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(agarVertexCount));
+    }
+
+    // Renderowanie przykrywki szalki
+    if (dishLidVAO != 0 && dishLidVertexCount > 0) {
+        glm::mat4 modelMatrix = glm::mat4(1.0f);
+        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
+
+        glUniformMatrix4fv(petri_u_modelMatrix_loc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
+        glUniformMatrix3fv(petri_u_normalMatrix_loc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+
+        glUniform3f(petri_u_objectColor_loc, 0.85f, 0.9f, 0.95f); // Kolor szkła
+        glUniform1f(petri_u_objectAlpha_loc, 0.25f);            // Alpha szkła
+        
+        glEnable(GL_BLEND); 
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glBindVertexArray(dishLidVAO);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(dishLidVertexCount));
+    }
+
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+
+    glBindVertexArray(0);
     shaderManager.useShaderProgram(0);
 }

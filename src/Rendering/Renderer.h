@@ -16,6 +16,7 @@
 #include "ShaderManager.h"
 #include "Simulation/BacteriaStatsProvider.h" 
 #include "Simulation/BacteriaStats.h" 
+#include "ModelLoader.h"
 
 class Renderer {
 private:
@@ -80,6 +81,29 @@ private:
     GLint glow_u_glowEffectRadius_loc;
     GLint glow_u_glowEffectIntensity_loc;
 
+    // Lokalizacje uniformów dla szalki
+    GLuint petriDishShaderProgramID;
+    GLint petri_u_modelMatrix_loc;
+    GLint petri_u_viewProjectionMatrix_loc;
+    GLint petri_u_normalMatrix_loc;
+    GLint petri_u_objectColor_loc;
+    GLint petri_u_objectAlpha_loc;
+    GLint petri_u_lightPosWorld_loc;  
+    GLint petri_u_lightColor_loc;
+    GLint petri_u_ambientColor_loc;
+    GLint petri_u_cameraPositionWorld_loc;
+    GLint petri_u_lightRange_loc;
+
+    // Geometria dla poszczególnych części szalki
+    GLuint dishBaseVAO, dishBaseVBO;
+    size_t dishBaseVertexCount;
+
+    GLuint dishLidVAO, dishLidVBO;
+    size_t dishLidVertexCount;
+
+    GLuint agarVAO, agarVBO;
+    size_t agarVertexCount;
+
     // Właściwości światła
     glm::vec3 lightPosWorld;
     glm::vec3 lightColor;
@@ -137,4 +161,12 @@ public:
     void setGlowRadius(float radius) { glowEffectRadius = radius; }     
     void setGlowIntensity(float intensity) { glowEffectIntensityFactor = intensity; }
     // *******************
+
+    // ******************
+    // *** Szalka i agar *** /
+    void initPetriDishShader();
+    void setupPetriDishGeometry(); 
+    void renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm::mat4& viewMatrix);
+
+    void setupMeshGeometry(const char* modelPath, GLuint& vao, GLuint& vbo, size_t& vertexCount);
 };

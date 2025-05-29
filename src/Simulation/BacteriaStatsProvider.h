@@ -55,8 +55,6 @@ inline BacteriaStats getStatsForType(BacteriaType type) {
                 const int segments = 16; // Liczba segmentów do aproksymacji elipsy
                 const float radiusX = 1.5f; // Promień w osi X
                 const float radiusY = 0.6f; // Promień w osi Y 
-                
-
                 for (int i = 0; i <= segments; ++i) { 
                     float angle = static_cast<float>(i) / static_cast<float>(segments) * 2.0f * static_cast<float>(M_PI);
                     ellipseVertices.push_back({radiusX * std::cos(angle), radiusY * std::sin(angle)});
