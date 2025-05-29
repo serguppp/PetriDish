@@ -1,10 +1,12 @@
-#version 130
+#version 330 core
 
-in vec2 a_vertex; // Lokalna pozycja wierzchołka
+// Atrybuty wierzchołka 
+layout (location = 0) in vec2 a_vertexPosition;
 
-uniform mat4 u_modelMatrix;
-uniform mat4 u_viewProjectionMatrix;
+// Uniformy
+uniform mat4 u_modelMatrix;             // Macierz modelu dla pozycji i skali efektu antybiotyku
+uniform mat4 u_viewProjectionMatrix;    // Macierz widoku-projekcji
 
 void main() {
-    gl_Position = u_viewProjectionMatrix * u_modelMatrix * vec4(a_vertex, 0.0, 1.0);
+    gl_Position = u_viewProjectionMatrix * u_modelMatrix * vec4(a_vertexPosition, 0.0, 1.0);
 }

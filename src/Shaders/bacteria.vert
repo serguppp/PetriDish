@@ -1,26 +1,34 @@
-#version 130
+#version 330 core
 
-// Atrybut wierzchołka z VBO - lokalne współrzędne modelu
-in vec2 a_position;
+// Atrybuty wierzchołka
+layout (location = 0) in vec2 a_vertexLocalPosition; // Lokalna pozycja wierzchołka modelu bakterii
 
 // Uniformy
-uniform mat4 u_mvp;             // Macierz Model-View-Projection
-uniform vec2 u_worldPosition;   // Centralna pozycja bakterii w przestrzeni świata
-uniform float u_scale;           // Skala bakterii
+uniform mat4 u_viewProjectionMatrix;    // Macierz widoku-projekcji
+uniform vec2 u_instanceWorldPosition;   // Pozycja instancji bakterii w świecie
+uniform float u_instanceScale;          // Skala instancji bakterii
+uniform float u_bacteriaHealth;         // Kondycja bakterii 
+uniform int u_bacteriaType;             // Typ bakterii 
+uniform float u_time;                   // Czas globalny dla animacji
 
-// Wyjścia do Fragment Shadera
-out vec2 v_localPos;        // Lokalne współrzędne dla wzorów proceduralnych
-out vec3 v_fragPos_world;   // Pozycja fragmentu w przestrzeni świata dla oświetlenia
-out vec3 v_normal_world;    // Wektor normalny w przestrzeni świata dla oświetlenia
+// Wyjścia do shadera fragmentów
+out vec3 v_fragWorldPosition; 
+out vec3 v_normalWorld;         
+out float v_health;
+flat out int v_bacteriaTypeOut; 
+out vec2 v_localPosition; 
 
 void main() {
-    v_localPos = a_position;
+    // Transformacja pozycji wierzchołka bakterii do przestrzeni świata
+    vec2 worldPos = u_instanceWorldPosition + (a_vertexLocalPosition * u_instanceScale);
+    
+    // Ustawienie pozycji w przestrzeni 
+    gl_Position = u_viewProjectionMatrix * vec4(worldPos, 0.0, 1.0);
 
-    vec2 scaled_model_pos = a_position * u_scale;
-    vec4 world_pos_of_vertex = vec4(u_worldPosition + scaled_model_pos, 0.0, 1.0);
-
-    v_fragPos_world = world_pos_of_vertex.xyz;
-    v_normal_world = vec3(0.0, 0.0, 1.0); // Dla płaskich bakterii 2D
-
-    gl_Position = u_mvp * world_pos_of_vertex;
+    // Przekazanie danych do shadera fragmentów
+    v_fragWorldPosition = vec3(worldPos, 0.0); 
+    v_normalWorld = vec3(0.0, 0.0, 1.0); 
+    v_health = u_bacteriaHealth;
+    v_bacteriaTypeOut = u_bacteriaType;
+    v_localPosition = a_vertexLocalPosition;
 }

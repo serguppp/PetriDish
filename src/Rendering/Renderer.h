@@ -30,68 +30,67 @@ private:
 
     std::vector<AntibioticEffect> activeAntibiotics; 
 
-    // ID shaderów
+    // ID programów shaderowych
     GLuint bacteriaShaderProgramID;
     GLuint pointShaderProgramID;
     GLuint antibioticShaderProgramID;
     GLuint glowShaderProgramID;
 
-    // Lokalizacje uniformów dla shadera bakterii w widoku mikro
-    GLint bacteria_u_mvp_loc;
-    GLint bacteria_u_worldPosition_loc;
-    GLint bacteria_u_scale_loc;
-    GLint bacteria_u_bacteriaType_loc;
-    GLint bacteria_u_health_loc;
+    // Lokalizacje uniformów dla shadera bakterii (widok mikro)
+    GLint bacteria_u_viewProjectionMatrix_loc;
+    GLint bacteria_u_instanceWorldPosition_loc;
+    GLint bacteria_u_instanceScale_loc;
+    GLint bacteria_u_bacteriaType_loc;     
+    GLint bacteria_u_bacteriaHealth_loc;    
     GLint bacteria_u_time_loc;
 
-    // Lokalizacje uniformów dla oświetlenia bakterii w widoku mikro
-    GLint bacteria_u_lightPosition_world_loc;
+    // Lokalizacje uniformów dla oświetlenia w shaderze bakterii
+    GLint bacteria_u_lightPositionWorld_loc;
     GLint bacteria_u_lightColor_loc;
     GLint bacteria_u_ambientColor_loc;
-    GLint bacteria_u_viewPosition_world_loc; 
+    GLint bacteria_u_cameraPositionWorld_loc; 
     GLint bacteria_u_lightRange_loc;
 
-    // Lokalizacje uniformów dla shadera punktów (macro view)
+    // Lokalizacje uniformów dla shadera punktów (widok makro)
     GLint point_u_modelMatrix_loc;
     GLint point_u_viewProjectionMatrix_loc;
-    GLint point_u_pointSize_loc;
-    GLint point_u_color_uniform_loc;
+    GLint point_u_renderPointSize_loc;
+    GLint point_u_pointColor_loc;
 
     // Lokalizacje uniformów dla shadera antybiotyków
     GLint antibiotic_u_modelMatrix_loc;
     GLint antibiotic_u_viewProjectionMatrix_loc;
-    GLint antibiotic_u_color_loc;
+    GLint antibiotic_u_effectColor_loc;
 
-    //  Geometria Bakterii (VAO/VBO) 
+    // Geometria Bakterii (VAO/VBO) 
     std::map<BacteriaType, GLuint> bacteriaVAOs;         
-    std::map<BacteriaType, GLuint> bacteriaVBOs_pos;  
+    std::map<BacteriaType, GLuint> bacteriaVBOs_vertexLocalPosition; 
     std::map<BacteriaType, int> bacteriaVertexCounts; 
 
-    // Geometria dla punktów (macro view) i antybiotyków
-    GLuint pointVAO, pointVBO;
-    GLuint antibioticCircleVAO, antibioticCircleVBO;
+    // Geometria dla punktów (widok makro) i antybiotyków
+    GLuint pointVAO, pointVBO_vertexPosition; 
+    GLuint antibioticCircleVAO, antibioticCircleVBO_vertexPosition; 
     int antibioticCircleVertexCount;
 
-    // Lokalizacje uniformów dla poświaty
-    GLuint glowVAO, glowVBO;
-    GLint glow_u_mvp_loc;
-    GLint glow_u_lightPos_screen_loc;
-    GLint glow_u_resolution_loc;
-    GLint glow_u_glowColor_loc;
-    GLint glow_u_glowRadius_loc;
-    GLint glow_u_glowIntensity_loc;
+    // Lokalizacje uniformów dla shadera poświaty
+    GLuint glowVAO, glowVBO_vertexPosition; 
+    GLint glow_u_lightScreenPosition_loc;
+    GLint glow_u_screenResolution_loc;
+    GLint glow_u_glowEffectColor_loc;
+    GLint glow_u_glowEffectRadius_loc;
+    GLint glow_u_glowEffectIntensity_loc;
 
     // Właściwości światła
     glm::vec3 lightPosWorld;
     glm::vec3 lightColor;
     glm::vec3 ambientColor;
     float lightRange; 
-    float lightIntensity;
+    float lightIntensity; 
 
     // Właściwości poświaty 
-    glm::vec3 glowColor;
-    float glowRadius;      
-    float glowIntensityFactor; 
+    glm::vec3 glowEffectColor;
+    float glowEffectRadius;   
+    float glowEffectIntensityFactor; 
 
 public:
     Renderer(int width, int height);
@@ -114,7 +113,7 @@ public:
     void initBacteriaShader();
 
     // *******************
-    // *** Antybiotyki***/
+    // *** Antybiotyki ***/
     void addAntibioticEffect(const glm::vec2& worldPos, float strength, float radius, float lifetime = 2.0f);
     void updateAntibioticEffects(float deltaTime);
     void renderAntibioticEffects(const glm::mat4& viewProjectionMatrix);
@@ -123,7 +122,7 @@ public:
     void setupAntibioticGeometry();
 
     // *******************
-    // *** Oświetlenie ***/
+    // *** Oświetlenie i Poświata ***/
     void setLightPosition(const glm::vec3& pos) { lightPosWorld = pos; }
     void setLightColor(const glm::vec3& color) { lightColor = color; }
     void setAmbientColor(const glm::vec3& color) { ambientColor = color; }
@@ -134,9 +133,8 @@ public:
 
     void renderGlowEffect(const glm::mat4& projection, const glm::mat4& view, float currentZoomLevel); 
 
-    void setGlowColor(const glm::vec3& color) { glowColor = color; }
-    void setGlowRadius(float radius) { glowRadius = radius; }
-    void setGlowIntensity(float intensity) { glowIntensityFactor = intensity; }
+    void setGlowColor(const glm::vec3& color) { glowEffectColor = color; } 
+    void setGlowRadius(float radius) { glowEffectRadius = radius; }     
+    void setGlowIntensity(float intensity) { glowEffectIntensityFactor = intensity; }
     // *******************
-
 };

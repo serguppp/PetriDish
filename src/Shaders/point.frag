@@ -1,8 +1,11 @@
-#version 130
+#version 330 core
 
-flat in vec3 v_color_type_passthrough; 
-out vec4 FragColor;
+// Uniformy
+uniform vec3 u_pointColor; 
+
+// Wyjście shadera
+out vec4 out_FragColor;
 
 void main() {
-    FragColor = vec4(v_color_type_passthrough, 1.0);
+    out_FragColor = vec4(u_pointColor, 1.0);
 }

@@ -1,23 +1,27 @@
-#version 130
+#version 330 core
 
-in vec2 v_texCoord;
-in vec2 v_fragPos_screen; // Pozycja fragmentu w pikselach ekranu
+// Wejścia z shadera wierzchołków
+in vec2 v_texCoord; 
 
-uniform vec3 u_glowColor;       // Kolor poświaty
-uniform vec2 u_lightPos_screen; // Pozycja światła w pikselach ekranu
-uniform float u_glowRadius;     // Promień poświaty w pikselach
-uniform float u_glowIntensity;  // Intensywność poświaty
+// Uniformy
+uniform vec2 u_screenResolution;        // Rozdzielczość ekranu w pikselach
+uniform vec2 u_lightScreenPosition;     // Pozycja światła w przestrzeni ekranu 
+uniform vec3 u_glowEffectColor;         // Kolor poświaty
+uniform float u_glowEffectRadius;       // Promień poświaty w pikselach
+uniform float u_glowEffectIntensity;    // Intensywność poświaty
 
-out vec4 FragColor;
+// Wyjście shadera
+out vec4 out_FragColor;
 
 void main() {
-    float distanceToLight = length(v_fragPos_screen - u_lightPos_screen);
-
-    float attenuation = 1.0 - smoothstep(0.0, u_glowRadius, distanceToLight);
-    attenuation *= attenuation;
-
-    float finalAlpha = attenuation * u_glowIntensity;
-    finalAlpha = clamp(finalAlpha, 0.0, 1.0); 
-
-    FragColor = vec4(u_glowColor, finalAlpha);
+    // Współrzędne fragmentu w pikselach
+    vec2 fragCoordPixels = v_texCoord * u_screenResolution;
+    
+    float distanceToLight = length(fragCoordPixels - u_lightScreenPosition);
+    
+    // Obliczanie intensywności poświaty na podstawie odległości
+    float glow = 1.0 - smoothstep(0.0, u_glowEffectRadius, distanceToLight);
+    glow *= u_glowEffectIntensity;
+    
+    out_FragColor = vec4(u_glowEffectColor * glow, glow); // Alfa zależna od intensywności
 }

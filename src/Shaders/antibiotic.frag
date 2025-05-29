@@ -1,8 +1,11 @@
-#version 130
+#version 330 core
 
-out vec4 FragColor;
-uniform vec4 u_color;
+// Uniformy
+uniform vec4 u_effectColor;
+
+// Wyjście shadera
+out vec4 out_FragColor;
 
 void main() {
-    FragColor = u_color;
+    out_FragColor = u_effectColor;
 }
