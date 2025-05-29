@@ -29,6 +29,8 @@ glm::vec2 viewOffset(0.0f, 0.0f);
 glm::vec2 lastMousePos(0.0f, 0.0f);
 bool isPanning = false;
 
+const size_t MAX_BACTERIA_COUNT = 10000; 
+
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset){
     if (ImGui::GetIO().WantCaptureMouse){ 
         return;
@@ -120,10 +122,10 @@ void setupGuiCallbacks(GUIRenderer &guiRenderer, Renderer& renderer, std::vector
 
         glm::vec3 clickCenter(world_click_center_pos.x, world_click_center_pos.y, 0.0f);
         // Promień rozrzutu 
-        float offsetRadiusWorld = 2.0f; 
+        float radius = 2.0f; 
 
         for (int i = 0; i < bacteriaCount; ++i){
-            glm::vec2 randomOffset = glm::gaussRand(glm::vec2(0.0f), glm::vec2(offsetRadiusWorld));
+            glm::vec2 randomOffset = glm::gaussRand(glm::vec2(0.0f), glm::vec2(radius));
             glm::vec3 spawnPosition = clickCenter + glm::vec3(randomOffset.x, randomOffset.y, 0.0f);
             glm::vec4 finalPosition(spawnPosition, 1.0f);
             allBacteria.push_back(BacteriaFactory::createAtPosition(type, finalPosition));
@@ -207,24 +209,20 @@ int main(){
         // rozmnażanie bakterii
         std::vector<std::unique_ptr<IBacteria>> newBacteria;
         for (auto& bacteria : allBacteria) {
-            if (bacteria && bacteria->canDivide()) {
-                bacteria->resetDivisionTimer(); 
-                // ograniczenie liczby bakterii, aby uniknąć eksplozji populacji i problemów z wydajnością
-                const size_t MAX_BACTERIA_COUNT = 10000; 
-                if (allBacteria.size() + newBacteria.size() < MAX_BACTERIA_COUNT) {
-                    IBacteria* childRawPtr = bacteria->clone();
-                    if (childRawPtr) {
-                        newBacteria.push_back(std::unique_ptr<IBacteria>(childRawPtr));
+            if (bacteria && bacteria->canDivide()) { 
+                if (glm::linearRand(0.0f, 1.0f) < 0.05f) { // 5% szansy na podział
+                    IBacteria* child = bacteria->clone();
+                    if (child) {
+                        newBacteria.push_back(std::unique_ptr<IBacteria>(child));
                     }
                 }
-
+                bacteria->resetDivisionTimer();
             }
         }
 
         for (auto& child : newBacteria) {
             allBacteria.push_back(std::move(child));
         }
-
         
         // usuwanie bakterii
         allBacteria.erase(

@@ -9,8 +9,7 @@
 #include <vector>
 #include <utility> 
 #include <iostream> 
-#include <random> 
-#include <chrono> 
+
 
 class Bacteria : public IBacteria {
 private:
