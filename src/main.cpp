@@ -44,7 +44,7 @@ glm::vec3 cameraPos3D = glm::vec3(0.0f, -15.0f, 10.0f); // Pozycja kamery w 3D
 glm::vec3 cameraTarget3D = glm::vec3(0.0f, 0.0f, 0.0f); // Na co kamera patrzy
 glm::vec3 cameraUp3D = glm::vec3(0.0f, 0.0f, 1.0f);    // Orientacja kamery 
 
-float cameraDistance = 20.0f; // Odległość kamery od celu
+float cameraDistance = 50.0f; // Odległość kamery od celu
 float cameraYaw = 0.0f;       // Kąt obrotu wokół osi Y
 float cameraPitch = glm::radians(-30.0f); // Kąt obrotu góra/dół
 
@@ -52,7 +52,7 @@ bool isPanning3D = false;
 glm::vec2 lastMousePos3D(0.0f, 0.0f);
 
 const float ROTATION_SENSITIVITY = 0.005f;
-const float ZOOM_3D_SENSITIVITY = 0.5f;
+const float ZOOM_3D_SENSITIVITY = 1.5f;
 const float MIN_CAMERA_DISTANCE = 2.0f;
 const float MAX_CAMERA_DISTANCE = 100.0f;
 const float MIN_PITCH = glm::radians(-89.0f);
@@ -324,9 +324,8 @@ int main(){
         // Poniższa macierz będzie przekazana do renderera i do shaderów
         glm::mat4 viewProjectionMatrix = projectionMatrix * viewMatrix;
 
-        if (is3DView) {
-            renderer.renderPetriDish(viewProjectionMatrix, viewMatrix); 
-        }
+        renderer.renderPetriDish(viewProjectionMatrix, viewMatrix); 
+
         // Renderowanie kolonii bakterii
         renderer.renderColony(allBacteria, currentZoomLevel, viewProjectionMatrix); 
 
@@ -334,7 +333,6 @@ int main(){
         renderer.renderAntibioticEffects(viewProjectionMatrix);
 
         // Renderowanie poświaty 
-        if (!is3DView)
         renderer.renderGlowEffect(projectionMatrix, viewMatrix, currentZoomLevel);
 
         // Renderowanie klatki ImGui na wierzchu sceny

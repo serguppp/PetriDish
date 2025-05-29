@@ -11,7 +11,7 @@ const float BACTERIA_MODEL_SCALE_FACTOR = 0.5f;
 
 Renderer::Renderer(int width, int height)
     : window(nullptr), windowWidth(width), windowHeight(height), successfullyInitialized(false),
-      lightPosWorld(static_cast<float>(width) / 2.0f, static_cast<float>(height) / 2.0f, 10.0f), 
+      lightPosWorld(0.0f, 0.0f, 20.0f), 
       lightColor(1.5f, 1.5f, 1.5f),         
       ambientColor(0.5f, 0.5f, 0.5f), 
       lightRange(100.0f), 
@@ -570,6 +570,8 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
     // Renderowanie podstawy szalki
     if (dishBaseVAO != 0 && dishBaseVertexCount > 0) {
         glm::mat4 modelMatrix = glm::mat4(1.0f); 
+        modelMatrix = glm::scale(modelMatrix, glm::vec3(10.0f)); 
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
         
         glUniformMatrix4fv(petri_u_modelMatrix_loc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
@@ -590,6 +592,8 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
     // Renderowanie agaru 
     if (agarVAO != 0 && agarVertexCount > 0) {
         glm::mat4 modelMatrix = glm::mat4(1.0f); 
+        modelMatrix = glm::scale(modelMatrix, glm::vec3(10.0f)); 
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
 
         glUniformMatrix4fv(petri_u_modelMatrix_loc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
@@ -609,7 +613,8 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
     // Renderowanie przykrywki szalki
     if (dishLidVAO != 0 && dishLidVertexCount > 0) {
         glm::mat4 modelMatrix = glm::mat4(1.0f);
-        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
+        modelMatrix = glm::scale(modelMatrix, glm::vec3(10.0f)); 
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
 
         glUniformMatrix4fv(petri_u_modelMatrix_loc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
         glUniformMatrix3fv(petri_u_normalMatrix_loc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
