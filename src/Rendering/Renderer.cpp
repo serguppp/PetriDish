@@ -11,13 +11,13 @@ const float BACTERIA_MODEL_SCALE_FACTOR = 0.5f;
 
 Renderer::Renderer(int width, int height)
     : window(nullptr), windowWidth(width), windowHeight(height), successfullyInitialized(false),
-      lightPosWorld(0.0f, 0.0f, 20.0f), 
+      lightPosWorld(0.0f, 0.0f, 50.0f), 
       lightColor(1.5f, 1.5f, 1.5f),         
       ambientColor(0.5f, 0.5f, 0.5f), 
-      lightRange(100.0f), 
-      lightIntensity(1.0f), 
+      lightRange(200.0f), 
+      lightIntensity(0.5f), 
       glowEffectColor(1.0f, 0.9f, 0.7f), 
-      glowEffectRadius(100.0f),         
+      glowEffectRadius(10.0f),         
       glowEffectIntensityFactor(0.75f)   
 {
     successfullyInitialized = initOpenGL(width, height);
@@ -78,7 +78,7 @@ Renderer::~Renderer() {
 }
 
 bool Renderer::initOpenGL(int width, int height) {
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // Okno nie będzie miało zmiennego rozmiaru
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); 
 
     // Wymaganie OpenGL w wersji 3.0 lub nowszej
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -112,7 +112,6 @@ bool Renderer::initOpenGL(int width, int height) {
 
     // Ustawienie początkowych procedur renderowania
     setupInitialProcedures();
-    glfwSwapInterval(1); // Włączenie V-Sync
     return true;
 }
 
@@ -123,9 +122,10 @@ bool Renderer::isInitialized() const {
 void Renderer::setupInitialProcedures() {
     glClearColor(0.1f, 0.1f, 0.15f, 1.0f); // Ustawienie koloru tła
     glEnable(GL_BLEND); // Włączenie mieszania kolorów (blending)
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE); // Addytywny blending
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Standardowe ustawienie blendingu dla przezroczystości
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Standardowe ustawienie blendingu dla przezroczystości
     glEnable(GL_DEPTH_TEST);  // Włączenie testu głębi (Z-bufor)
+    glDepthMask(GL_TRUE);
+    glfwSwapInterval(1); // Włączenie V-Sync
 }
 
 GLFWwindow* Renderer::getWindow() const {
@@ -139,7 +139,7 @@ void Renderer::beginFrame() {
 
 void Renderer::endFrame() {
     if (window) 
-        glfwSwapBuffers(window); // Zamiana buforów (przedni z tylnym)
+        glfwSwapBuffers(window); // Zamiana buforów przedni z tylnym
 }
 
 // Inicjalizacja shadera bakterii
@@ -270,22 +270,6 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::m
         default: bacteriaColor = glm::vec3(0.7f, 0.7f, 0.7f); break;
     }
 
-    if (zoomLevel < MICROSCOPIC_VIEW_THRESHOLD) {
-        // Widok makro: renderowanie jako punkty
-        if (pointShaderProgramID == 0 || pointVAO == 0) return;
-        shaderManager.useShaderProgram(pointShaderProgramID);
-        glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(posVec4.x, posVec4.y, 0.0f));
-        
-        glUniformMatrix4fv(point_u_modelMatrix_loc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
-        glUniformMatrix4fv(point_u_viewProjectionMatrix_loc, 1, GL_FALSE, glm::value_ptr(viewProjectionMatrix));
-        glUniform1f(point_u_renderPointSize_loc, 3.0f); // Stały rozmiar punktu w widoku makro
-        glUniform3fv(point_u_pointColor_loc, 1, glm::value_ptr(bacteriaColor * bacteria.getHealth())); // Kolor zależny od zdrowia
-
-        glBindVertexArray(pointVAO);
-        glDrawArrays(GL_POINTS, 0, 1);
-        glBindVertexArray(0);
-
-    } else {
         // Widok mikro: renderowanie pełnego modelu bakterii
         if (bacteriaShaderProgramID == 0 || bacteriaVAOs.find(type) == bacteriaVAOs.end()) return;
 
@@ -293,7 +277,7 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::m
 
         // Ustawianie uniformów dla shadera bakterii
         glUniformMatrix4fv(bacteria_u_viewProjectionMatrix_loc, 1, GL_FALSE, glm::value_ptr(viewProjectionMatrix));
-        glUniform2f(bacteria_u_instanceWorldPosition_loc, posVec4.x, posVec4.y);
+        glUniform3f(bacteria_u_instanceWorldPosition_loc, posVec4.x, posVec4.y, posVec4.z); 
         glUniform1f(bacteria_u_instanceScale_loc, BACTERIA_MODEL_SCALE_FACTOR);
         glUniform1i(bacteria_u_bacteriaType_loc, static_cast<int>(type)); 
         glUniform1f(bacteria_u_bacteriaHealth_loc, bacteria.getHealth()); 
@@ -315,7 +299,7 @@ void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::m
             glDrawArrays(GL_TRIANGLE_FAN, 0, bacteriaVertexCounts.at(type));
             glBindVertexArray(0);
         }
-    }
+
     shaderManager.useShaderProgram(0); 
 }
 
@@ -578,11 +562,11 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
         glUniformMatrix3fv(petri_u_normalMatrix_loc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
         
         glUniform3f(petri_u_objectColor_loc, 0.85f, 0.9f, 0.95f); // Kolor szkła
-        glUniform1f(petri_u_objectAlpha_loc, 0.25f);            // Alpha szkła
+        glUniform1f(petri_u_objectAlpha_loc, 0.1);            // Alpha szkła
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDepthMask(GL_FALSE); 
+        glDepthMask(GL_FALSE);
 
         glBindVertexArray(dishBaseVAO);
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(dishBaseVertexCount));
@@ -592,6 +576,7 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
     // Renderowanie agaru 
     if (agarVAO != 0 && agarVertexCount > 0) {
         glm::mat4 modelMatrix = glm::mat4(1.0f); 
+        modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -1.0f));
         modelMatrix = glm::scale(modelMatrix, glm::vec3(10.0f)); 
         modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
@@ -600,7 +585,7 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
         glUniformMatrix3fv(petri_u_normalMatrix_loc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
 
         glUniform3f(petri_u_objectColor_loc, 0.8f, 0.15f, 0.15f); // Kolor agaru
-        glUniform1f(petri_u_objectAlpha_loc, 0.8f);             // Alpha agaru
+        glUniform1f(petri_u_objectAlpha_loc, 0.7f);             // Alpha agaru
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
@@ -614,7 +599,8 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
     if (dishLidVAO != 0 && dishLidVertexCount > 0) {
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         modelMatrix = glm::scale(modelMatrix, glm::vec3(10.0f)); 
-        modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));       
+        glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
 
         glUniformMatrix4fv(petri_u_modelMatrix_loc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
         glUniformMatrix3fv(petri_u_normalMatrix_loc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
@@ -624,6 +610,7 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
         
         glEnable(GL_BLEND); 
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
 
         glBindVertexArray(dishLidVAO);
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(dishLidVertexCount));

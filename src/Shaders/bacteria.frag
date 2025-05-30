@@ -91,7 +91,7 @@ void main() {
 
     if (u_lightRange > 0.001) {
         // Zanikanie światła
-        attenuation = 1.0 - smoothstep(u_lightRange * 0.5, u_lightRange, distanceToLight); 
+        attenuation = 1.0 - smoothstep(u_lightRange * 0.005, u_lightRange, distanceToLight); 
     } else {
         attenuation = 0.0; // Jeśli zasięg jest zerowy lub bliski zeru, brak światła
     }

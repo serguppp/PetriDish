@@ -100,10 +100,9 @@ void GUIRenderer::render(const glm::vec2& viewOffset, float zoomLevel, int windo
         ImGui::Separator();
     }
 
-
      // --- Sekcja ustawień oświetlenia ---
     ImGui::Text("Ustawienia oswietlenia:");
-    if (ImGui::SliderFloat("Zasieg swiatla", &lightRange, 10.0f, 500.0f)) { 
+    if (ImGui::SliderFloat("Zasieg swiatla", &lightRange, 10.0f, 100.0f)) { 
         if (onLightRangeChanged) {
             onLightRangeChanged(lightRange);
         }
