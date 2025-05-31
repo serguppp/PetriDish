@@ -562,7 +562,7 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
     if (dishBaseVAO != 0 && dishBaseVertexCount > 0) {
         glm::mat4 modelMatrix = glm::mat4(1.0f); 
         modelMatrix = glm::scale(modelMatrix, glm::vec3(10.0f)); 
-        modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
         
         glUniformMatrix4fv(petri_u_modelMatrix_loc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
@@ -581,7 +581,7 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
         glm::mat4 modelMatrix = glm::mat4(1.0f); 
         modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -1.0f));
         modelMatrix = glm::scale(modelMatrix, glm::vec3(10.0f)); 
-        modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
 
         glUniformMatrix4fv(petri_u_modelMatrix_loc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
@@ -598,14 +598,14 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
     if (dishLidVAO != 0 && dishLidVertexCount > 0) {
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         modelMatrix = glm::scale(modelMatrix, glm::vec3(10.0f)); 
-        modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));       
+        modelMatrix = glm::rotate(modelMatrix, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));       
         glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
 
         glUniformMatrix4fv(petri_u_modelMatrix_loc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
         glUniformMatrix3fv(petri_u_normalMatrix_loc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
 
         glUniform3f(petri_u_objectColor_loc, 0.85f, 0.9f, 0.95f); // Kolor szkła
-        glUniform1f(petri_u_objectAlpha_loc, 0.25f);            // Alpha szkła
+        glUniform1f(petri_u_objectAlpha_loc, 0.05f);            // Alpha szkła
         
         glBindVertexArray(dishLidVAO);
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(dishLidVertexCount));

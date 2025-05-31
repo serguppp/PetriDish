@@ -112,7 +112,7 @@ void setupGuiCallbacks(GUIRenderer& guiRenderer, Renderer& renderer, std::vector
 
         for (int i = 0; i < bacteriaCount; ++i) {
             glm::vec2 randomOffset = glm::gaussRand(glm::vec2(0.0f), glm::vec2(radius));
-            float offsetZ = static_cast<float>(i) * 0.001f; 
+            float offsetZ = 2.5f + static_cast<float>(i) * 0.001f; 
             glm::vec3 spawnPosition = clickCenter + glm::vec3(randomOffset.x, randomOffset.y, offsetZ);
             allBacteria.push_back(BacteriaFactory::createAtPosition(type, glm::vec4(spawnPosition, 1.0f)));
         }

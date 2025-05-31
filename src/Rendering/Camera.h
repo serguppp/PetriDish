@@ -19,10 +19,10 @@ public:
 
     // Konfiguracja widoku 3D
     glm::vec3 cameraTarget3D{0.0f, 0.0f, 0.0f};
-    glm::vec3 cameraUp3D{0.0f, 0.0f, -1.0f}; 
+    glm::vec3 cameraUp3D{0.0f, 0.0f, 1.0f}; 
     float cameraDistance = 100.0f;
-    float cameraYaw = 0.0f;
-    float cameraPitch = glm::radians(-90.0f);
+    float cameraYaw = glm::radians(0.0f);
+    float cameraPitch = glm::radians(90.0f);
     glm::vec2 lastMousePos3D{0.0f, 0.0f};
     bool isRotating3D = false;
 
