@@ -57,20 +57,7 @@ add_custom_command(TARGET PetriDish POST_BUILD
         "${OUTPUT_SHADER_DIR}/bacteria.frag"
     COMMENT "Copying bacteria.frag"
 )
-# Usunięto komendy kopiowania dla glow.vert i glow.frag
 
-add_custom_command(TARGET PetriDish POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${SHADER_DIR}/point.vert"
-        "${OUTPUT_SHADER_DIR}/point.vert"
-    COMMENT "Copying point.vert"
-)
-add_custom_command(TARGET PetriDish POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${SHADER_DIR}/point.frag"
-        "${OUTPUT_SHADER_DIR}/point.frag"
-    COMMENT "Copying point.frag"
-)
 add_custom_command(TARGET PetriDish POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${SHADER_DIR}/antibiotic.vert"
