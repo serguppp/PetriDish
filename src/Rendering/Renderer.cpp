@@ -547,9 +547,16 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
     glUniform3fv(petri_u_ambientColor_loc, 1, glm::value_ptr(ambientColor));
     glm::vec3 cameraPosForShader = glm::vec3(glm::inverse(viewMatrix)[3]);
     glUniform3fv(petri_u_cameraPositionWorld_loc, 1, glm::value_ptr(cameraPosForShader));
-    glUniform1f(petri_u_lightRange_loc, lightRange * 5.0f); 
+    glUniform1f(petri_u_lightRange_loc, lightRange); 
     
     glUniformMatrix4fv(petri_u_viewProjectionMatrix_loc, 1, GL_FALSE, glm::value_ptr(viewProjectionMatrix));
+
+    // Renderowanie przezroczystych części szalki
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask(GL_FALSE); // Wyłącz zapis do bufora głębi dla przezroczystych obiektów
+    glEnable(GL_CULL_FACE); // Włącz odrzucanie ścian
+    glCullFace(GL_BACK);    // Odrzucaj tylne ściany
 
     // Renderowanie podstawy szalki
     if (dishBaseVAO != 0 && dishBaseVertexCount > 0) {
@@ -563,10 +570,6 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
         
         glUniform3f(petri_u_objectColor_loc, 0.85f, 0.9f, 0.95f); // Kolor szkła
         glUniform1f(petri_u_objectAlpha_loc, 0.1);            // Alpha szkła
-
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDepthMask(GL_FALSE);
 
         glBindVertexArray(dishBaseVAO);
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(dishBaseVertexCount));
@@ -587,10 +590,6 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
         glUniform3f(petri_u_objectColor_loc, 0.8f, 0.15f, 0.15f); // Kolor agaru
         glUniform1f(petri_u_objectAlpha_loc, 0.7f);             // Alpha agaru
 
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 
-        glDepthMask(GL_FALSE); 
-
         glBindVertexArray(agarVAO);
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(agarVertexCount));
     }
@@ -608,17 +607,14 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
         glUniform3f(petri_u_objectColor_loc, 0.85f, 0.9f, 0.95f); // Kolor szkła
         glUniform1f(petri_u_objectAlpha_loc, 0.25f);            // Alpha szkła
         
-        glEnable(GL_BLEND); 
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDepthMask(GL_FALSE);
-
         glBindVertexArray(dishLidVAO);
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(dishLidVertexCount));
     }
 
-    glDepthMask(GL_TRUE);
-    glDisable(GL_BLEND);
-
+    // koniec renderowanie przezroczystych części szalki
+    glDisable(GL_CULL_FACE); // Wyłączanie  odrzucania ścian
+    glDepthMask(GL_TRUE);    // Przywrocenie zapisu do bufora głębi
+    glDisable(GL_BLEND);   
     glBindVertexArray(0);
     shaderManager.useShaderProgram(0);
 }
