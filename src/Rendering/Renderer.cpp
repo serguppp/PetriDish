@@ -15,11 +15,7 @@ Renderer::Renderer(int width, int height)
       lightColor(1.5f, 1.5f, 1.5f),         
       ambientColor(0.5f, 0.5f, 0.5f), 
       lightRange(200.0f), 
-      lightIntensity(0.5f), 
-      glowEffectColor(1.0f, 0.9f, 0.7f), 
-      glowEffectRadius(10.0f),         
-      glowEffectIntensityFactor(0.75f)   
-{
+      lightIntensity(0.5f){
     successfullyInitialized = initOpenGL(width, height);
     if (successfullyInitialized) {
         // Inicjalizacja shaderów po pomyślnym utworzeniu kontekstu OpenGL
@@ -31,9 +27,6 @@ Renderer::Renderer(int width, int height)
 
         initAntibioticShader();
         setupAntibioticGeometry();
-        
-        initGlowShader();     
-        setupGlowGeometry();  
 
         initPetriDishShader();
         setupPetriDishGeometry(); 
@@ -58,8 +51,6 @@ Renderer::~Renderer() {
     if (pointVBO_vertexPosition != 0) glDeleteBuffers(1, &pointVBO_vertexPosition); 
     if (antibioticCircleVAO != 0) glDeleteVertexArrays(1, &antibioticCircleVAO);
     if (antibioticCircleVBO_vertexPosition != 0) glDeleteBuffers(1, &antibioticCircleVBO_vertexPosition);
-    if (glowVAO != 0) glDeleteVertexArrays(1, &glowVAO);
-    if (glowVBO_vertexPosition != 0) glDeleteBuffers(1, &glowVBO_vertexPosition);
 
     if (dishBaseVAO != 0) glDeleteVertexArrays(1, &dishBaseVAO);
     if (dishBaseVBO != 0) glDeleteBuffers(1, &dishBaseVBO);
@@ -407,84 +398,6 @@ void Renderer::setupAntibioticGeometry() {
     glBindVertexArray(0);
 }
 
-// Inicjalizacja shadera poświaty
-void Renderer::initGlowShader() {
-    glowShaderProgramID = shaderManager.loadShaderProgram("glowShader", "shaders/glow.vert", "shaders/glow.frag");
-    if (glowShaderProgramID == 0) {
-        std::cerr << "Renderer: Błąd ładowania programu shadera poświaty!" << std::endl;
-        return;
-    }
-
-    glow_u_lightScreenPosition_loc = shaderManager.getUniformLocation(glowShaderProgramID, "u_lightScreenPosition");
-    glow_u_screenResolution_loc = shaderManager.getUniformLocation(glowShaderProgramID, "u_screenResolution");
-    glow_u_glowEffectColor_loc = shaderManager.getUniformLocation(glowShaderProgramID, "u_glowEffectColor");
-    glow_u_glowEffectRadius_loc = shaderManager.getUniformLocation(glowShaderProgramID, "u_glowEffectRadius");
-    glow_u_glowEffectIntensity_loc = shaderManager.getUniformLocation(glowShaderProgramID, "u_glowEffectIntensity");
-}
-
-// Ustawienie geometrii dla efektu poświaty 
-void Renderer::setupGlowGeometry() {
-    // Wierzchołki kwadratu pokrywającego cały ekran w przestrzeni
-    float quadVertices[] = {
-        // pozycje
-        -1.0f,  1.0f,
-        -1.0f, -1.0f,
-         1.0f, -1.0f,
-
-        -1.0f,  1.0f,
-         1.0f, -1.0f,
-         1.0f,  1.0f
-    };
-
-    glGenVertexArrays(1, &glowVAO);
-    glGenBuffers(1, &glowVBO_vertexPosition); 
-    glBindVertexArray(glowVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, glowVBO_vertexPosition); 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-    
-    GLint posAttribLoc = glGetAttribLocation(glowShaderProgramID, "a_vertexPosition"); 
-    if (posAttribLoc != -1) {
-        glEnableVertexAttribArray(posAttribLoc);
-        glVertexAttribPointer(posAttribLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-    } else {
-         std::cerr << "Renderer: Atrybut a_vertexPosition nie znaleziony w glowShader." << std::endl;
-    }
-    glBindVertexArray(0);
-}
-
-// Renderowanie efektu poświaty
-void Renderer::renderGlowEffect(const glm::mat4& projection, const glm::mat4& view, float currentZoomLevel) {
-    if (glowShaderProgramID == 0 || glowVAO == 0) return;
-    shaderManager.useShaderProgram(glowShaderProgramID);
-
-    // Transformacja pozycji światła ze świata do przestrzeni ekranu 
-    glm::vec4 lightPosClip = projection * view * glm::vec4(lightPosWorld, 1.0);
-    glm::vec3 lightPosNDC = glm::vec3(lightPosClip.x / lightPosClip.w, lightPosClip.y / lightPosClip.w, lightPosClip.z / lightPosClip.w);
-    glm::vec2 lightPosScreen(
-        (lightPosNDC.x * 0.5f + 0.5f) * windowWidth,
-        (lightPosNDC.y * 0.5f + 0.5f) * windowHeight
-    );
-
-    glUniform2fv(glow_u_lightScreenPosition_loc, 1, glm::value_ptr(lightPosScreen));
-    glUniform2f(glow_u_screenResolution_loc, static_cast<float>(windowWidth), static_cast<float>(windowHeight));
-    glUniform3fv(glow_u_glowEffectColor_loc, 1, glm::value_ptr(glowEffectColor));
-
-    // Promień poświaty w pikselach
-    float glowRadiusPixels = glowEffectRadius * currentZoomLevel; 
-    glUniform1f(glow_u_glowEffectRadius_loc, glowRadiusPixels);
-    glUniform1f(glow_u_glowEffectIntensity_loc, glowEffectIntensityFactor * lightIntensity); 
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Ustawienie blendingu dla poświaty
-    
-    glBindVertexArray(glowVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6); // Rysowanie kwadratu (2 trójkąty)
-    glBindVertexArray(0);
-
-    glDisable(GL_BLEND);
-    shaderManager.useShaderProgram(0);
-
-}
 
 void Renderer::setupMeshGeometry(const char* modelPath, GLuint& vao, GLuint& vbo, size_t& vertexCount) {
     std::vector<Vertex> vertices;

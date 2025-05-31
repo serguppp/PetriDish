@@ -42,7 +42,8 @@ set(OUTPUT_SHADER_DIR "$<TARGET_FILE_DIR:PetriDish>/shaders")
 
 add_custom_command(TARGET PetriDish POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${OUTPUT_SHADER_DIR}"
-    COMMENT "Creating shaders directory in output"
+    COMMENT "Creating shaders directory in 
+output"
 )
 add_custom_command(TARGET PetriDish POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -56,18 +57,7 @@ add_custom_command(TARGET PetriDish POST_BUILD
         "${OUTPUT_SHADER_DIR}/bacteria.frag"
     COMMENT "Copying bacteria.frag"
 )
-add_custom_command(TARGET PetriDish POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${SHADER_DIR}/glow.vert"  
-        "${OUTPUT_SHADER_DIR}/glow.vert"
-    COMMENT "Copying glow.vert"
-)
-add_custom_command(TARGET PetriDish POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${SHADER_DIR}/glow.frag" 
-        "${OUTPUT_SHADER_DIR}/glow.frag"
-    COMMENT "Copying glow.frag"
-)
+# Usunięto komendy kopiowania dla glow.vert i glow.frag
 
 add_custom_command(TARGET PetriDish POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different

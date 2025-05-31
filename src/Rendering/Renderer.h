@@ -35,7 +35,6 @@ private:
     GLuint bacteriaShaderProgramID;
     GLuint pointShaderProgramID;
     GLuint antibioticShaderProgramID;
-    GLuint glowShaderProgramID;
 
     // Lokalizacje uniformów dla shadera bakterii (widok mikro)
     GLint bacteria_u_viewProjectionMatrix_loc;
@@ -73,14 +72,6 @@ private:
     GLuint antibioticCircleVAO, antibioticCircleVBO_vertexPosition; 
     int antibioticCircleVertexCount;
 
-    // Lokalizacje uniformów dla shadera poświaty
-    GLuint glowVAO, glowVBO_vertexPosition; 
-    GLint glow_u_lightScreenPosition_loc;
-    GLint glow_u_screenResolution_loc;
-    GLint glow_u_glowEffectColor_loc;
-    GLint glow_u_glowEffectRadius_loc;
-    GLint glow_u_glowEffectIntensity_loc;
-
     // Lokalizacje uniformów dla szalki
     GLuint petriDishShaderProgramID;
     GLint petri_u_modelMatrix_loc;
@@ -110,11 +101,6 @@ private:
     glm::vec3 ambientColor;
     float lightRange; 
     float lightIntensity; 
-
-    // Właściwości poświaty 
-    glm::vec3 glowEffectColor;
-    float glowEffectRadius;   
-    float glowEffectIntensityFactor; 
 
 public:
     Renderer(int width, int height);
@@ -152,14 +138,6 @@ public:
     void setAmbientColor(const glm::vec3& color) { ambientColor = color; }
     void setLightRange(float range) { lightRange = range; }
 
-    void initGlowShader();
-    void setupGlowGeometry();
-
-    void renderGlowEffect(const glm::mat4& projection, const glm::mat4& view, float currentZoomLevel); 
-
-    void setGlowColor(const glm::vec3& color) { glowEffectColor = color; } 
-    void setGlowRadius(float radius) { glowEffectRadius = radius; }     
-    void setGlowIntensity(float intensity) { glowEffectIntensityFactor = intensity; }
     // *******************
 
     // ******************

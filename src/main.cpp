@@ -137,7 +137,6 @@ void setupGuiCallbacks(GUIRenderer& guiRenderer, Renderer& renderer, std::vector
 
     guiRenderer.onLightRangeChanged = [&](float range) {
         renderer.setLightRange(range * 2); 
-        renderer.setGlowRadius(10.0f * range / 100.0f); 
     };
 }
 
@@ -201,7 +200,6 @@ int main() {
         renderer.renderPetriDish(viewProjectionMatrix, viewMatrix);
         renderer.renderColony(allBacteria, camera.currentZoomLevel, viewProjectionMatrix); 
         renderer.renderAntibioticEffects(viewProjectionMatrix);
-        renderer.renderGlowEffect(projectionMatrix, viewMatrix, camera.currentZoomLevel);
 
         // Renderowanie klatki ImGui na wierzchu sceny
         ImGui::Render();
