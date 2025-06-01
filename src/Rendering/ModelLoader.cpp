@@ -3,7 +3,7 @@
 #include <sstream>
 #include <iostream> 
 
-bool loadOBJ(const char* path, std::vector<Vertex>& out_vertices) {
+bool ModelLoader::loadOBJ(const char* path, std::vector<Vertex>& out_vertices) {
     std::vector<glm::vec3> temp_positions;
     std::vector<glm::vec2> temp_texcoords;
     std::vector<glm::vec3> temp_normals;

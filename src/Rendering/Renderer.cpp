@@ -14,22 +14,23 @@ Renderer::Renderer(int width, int height)
       lightPosWorld(0.0f, 0.0f, 50.0f), 
       lightColor(1.5f, 1.5f, 1.5f),         
       ambientColor(0.5f, 0.5f, 0.5f), 
-      lightRange(200.0f), 
-      lightIntensity(0.5f){
+      lightRange(200.0f),  
+      agarTextureID(0){
+
     successfullyInitialized = initOpenGL(width, height);
     if (successfullyInitialized) {
         // Inicjalizacja shaderów po pomyślnym utworzeniu kontekstu OpenGL
         initBacteriaShader();
         setupBacteriaGeometry();
 
-        initPointShader();
-        setupPointGeometry();
-
         initAntibioticShader();
         setupAntibioticGeometry();
 
         initPetriDishShader();
         setupPetriDishGeometry(); 
+        
+        agarTextureID = TextureLoader::loadTexture("assets/textures/Leather024_1K-JPG_Color.jpg");
+        if (agarTextureID == 0) std::cerr << "Błąd załadowania tekstury szalki." << std::endl;
     }
 }
 
@@ -46,9 +47,7 @@ Renderer::~Renderer() {
     bacteriaVBOs_vertexLocalPosition.clear(); 
     bacteriaVertexCounts.clear(); 
 
-    // Czyszczenie zasobów dla punktów, antybiotyków i poświaty
-    if (pointVAO != 0) glDeleteVertexArrays(1, &pointVAO);
-    if (pointVBO_vertexPosition != 0) glDeleteBuffers(1, &pointVBO_vertexPosition); 
+    // Czyszczenie zasobów
     if (antibioticCircleVAO != 0) glDeleteVertexArrays(1, &antibioticCircleVAO);
     if (antibioticCircleVBO_vertexPosition != 0) glDeleteBuffers(1, &antibioticCircleVBO_vertexPosition);
 
@@ -61,6 +60,10 @@ Renderer::~Renderer() {
 
     if (!activeAntibiotics.empty()) {
          activeAntibiotics.clear();
+    }
+
+    if (agarTextureID != 0) {
+        glDeleteTextures(1, &agarTextureID);
     }
 
     if (window) {
@@ -131,6 +134,65 @@ void Renderer::beginFrame() {
 void Renderer::endFrame() {
     if (window) 
         glfwSwapBuffers(window); // Zamiana buforów przedni z tylnym
+}
+
+// Renderowanie pojedynczej bakterii
+void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::mat4& viewProjectionMatrix) {
+    if (!bacteria.isAlive()) return;
+
+    glm::vec4 posVec4 = bacteria.getPos();
+    BacteriaType type = bacteria.getBacteriaType();
+    glm::vec3 bacteriaColor;
+
+    switch (type) {
+        case BacteriaType::Cocci: bacteriaColor = glm::vec3(0.9f, 0.4f, 0.4f); break;
+        case BacteriaType::Diplococcus: bacteriaColor = glm::vec3(0.4f, 0.9f, 0.4f); break;
+        case BacteriaType::Staphylococci: bacteriaColor = glm::vec3(0.4f, 0.4f, 0.9f); break;
+        case BacteriaType::Bacillus: bacteriaColor = glm::vec3(0.8f, 0.6f, 0.2f); break;
+        default: bacteriaColor = glm::vec3(0.7f, 0.7f, 0.7f); break;
+    }
+
+        // Widok mikro: renderowanie pełnego modelu bakterii
+        if (bacteriaShaderProgramID == 0 || bacteriaVAOs.find(type) == bacteriaVAOs.end()) return;
+
+        shaderManager.useShaderProgram(bacteriaShaderProgramID);
+
+        // Ustawianie uniformów dla shadera bakterii
+        glUniformMatrix4fv(bacteria_u_viewProjectionMatrix_loc, 1, GL_FALSE, glm::value_ptr(viewProjectionMatrix));
+        glUniform3f(bacteria_u_instanceWorldPosition_loc, posVec4.x, posVec4.y, posVec4.z); 
+        glUniform1f(bacteria_u_instanceScale_loc, BACTERIA_MODEL_SCALE_FACTOR);
+        glUniform1i(bacteria_u_bacteriaType_loc, static_cast<int>(type)); 
+        glUniform1f(bacteria_u_bacteriaHealth_loc, bacteria.getHealth()); 
+        glUniform1f(bacteria_u_time_loc, static_cast<float>(glfwGetTime()));
+
+        // Uniformy oświetlenia
+        glUniform3fv(bacteria_u_lightPositionWorld_loc, 1, glm::value_ptr(lightPosWorld));
+        glUniform3fv(bacteria_u_lightColor_loc, 1, glm::value_ptr(lightColor));
+        glUniform3fv(bacteria_u_ambientColor_loc, 1, glm::value_ptr(ambientColor));
+        
+        glm::vec3 cameraPosWorld(viewProjectionMatrix[3][0], viewProjectionMatrix[3][1], 100.0f); 
+        glUniform3fv(bacteria_u_cameraPositionWorld_loc, 1, glm::value_ptr(cameraPosWorld));
+        glUniform1f(bacteria_u_lightRange_loc, lightRange);
+
+        // Renderowanie geometrii bakterii
+        auto vao_it = bacteriaVAOs.find(type);
+        if (vao_it != bacteriaVAOs.end() && bacteriaVertexCounts.count(type) && bacteriaVertexCounts.at(type) > 0) {
+            glBindVertexArray(vao_it->second);
+            glDrawArrays(GL_TRIANGLE_FAN, 0, bacteriaVertexCounts.at(type));
+            glBindVertexArray(0);
+        }
+
+    shaderManager.useShaderProgram(0); 
+}
+
+// Renderowanie całej kolonii bakterii
+void Renderer::renderColony(const std::vector<std::unique_ptr<IBacteria>>& allBacteria, float zoomLevel, const glm::mat4& viewProjectionMatrix) {
+    for (auto it = allBacteria.rbegin(); it != allBacteria.rend(); ++it) {
+        const std::unique_ptr<IBacteria>& bacteriaPtr = *it;
+        if (bacteriaPtr) { 
+            renderBacteria(*bacteriaPtr, zoomLevel, viewProjectionMatrix);
+        }
+    }
 }
 
 // Inicjalizacja shadera bakterii
@@ -210,98 +272,6 @@ void Renderer::setupBacteriaGeometry() {
         glBindVertexArray(0);            
     }
      std::cout << "Renderer: Ustawienie geometrii bakterii zakończone." << std::endl;
-}
-
-// Inicjalizacja shadera punktów
-void Renderer::initPointShader() {
-    pointShaderProgramID = shaderManager.loadShaderProgram("pointShader", "shaders/point.vert", "shaders/point.frag");
-    if (pointShaderProgramID == 0) {
-        std::cerr << "Renderer: Błąd ładowania programu shadera punktów!" << std::endl;
-        return;
-    }
-    point_u_modelMatrix_loc = shaderManager.getUniformLocation(pointShaderProgramID, "u_modelMatrix");
-    point_u_viewProjectionMatrix_loc = shaderManager.getUniformLocation(pointShaderProgramID, "u_viewProjectionMatrix");
-    point_u_renderPointSize_loc = shaderManager.getUniformLocation(pointShaderProgramID, "u_renderPointSize");
-    point_u_pointColor_loc = shaderManager.getUniformLocation(pointShaderProgramID, "u_pointColor");
-}
-
-// Ustawienie geometrii dla punktów
-void Renderer::setupPointGeometry() {
-    float point_vertex[] = { 0.0f, 0.0f }; 
-    glGenVertexArrays(1, &pointVAO);
-    glGenBuffers(1, &pointVBO_vertexPosition); 
-    glBindVertexArray(pointVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, pointVBO_vertexPosition); 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(point_vertex), point_vertex, GL_STATIC_DRAW);
-    
-    GLint posAttribLoc = glGetAttribLocation(pointShaderProgramID, "a_vertexPosition");
-     if (posAttribLoc != -1) {
-        glVertexAttribPointer(posAttribLoc, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(posAttribLoc);
-    } else {
-        std::cerr << "Renderer: Atrybut a_vertexPosition nie znaleziony w pointShader." << std::endl;
-    }
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-}
-
-// Renderowanie pojedynczej bakterii
-void Renderer::renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::mat4& viewProjectionMatrix) {
-    if (!bacteria.isAlive()) return;
-
-    glm::vec4 posVec4 = bacteria.getPos();
-    BacteriaType type = bacteria.getBacteriaType();
-    glm::vec3 bacteriaColor;
-
-    switch (type) {
-        case BacteriaType::Cocci: bacteriaColor = glm::vec3(0.9f, 0.4f, 0.4f); break;
-        case BacteriaType::Diplococcus: bacteriaColor = glm::vec3(0.4f, 0.9f, 0.4f); break;
-        case BacteriaType::Staphylococci: bacteriaColor = glm::vec3(0.4f, 0.4f, 0.9f); break;
-        case BacteriaType::Bacillus: bacteriaColor = glm::vec3(0.8f, 0.6f, 0.2f); break;
-        default: bacteriaColor = glm::vec3(0.7f, 0.7f, 0.7f); break;
-    }
-
-        // Widok mikro: renderowanie pełnego modelu bakterii
-        if (bacteriaShaderProgramID == 0 || bacteriaVAOs.find(type) == bacteriaVAOs.end()) return;
-
-        shaderManager.useShaderProgram(bacteriaShaderProgramID);
-
-        // Ustawianie uniformów dla shadera bakterii
-        glUniformMatrix4fv(bacteria_u_viewProjectionMatrix_loc, 1, GL_FALSE, glm::value_ptr(viewProjectionMatrix));
-        glUniform3f(bacteria_u_instanceWorldPosition_loc, posVec4.x, posVec4.y, posVec4.z); 
-        glUniform1f(bacteria_u_instanceScale_loc, BACTERIA_MODEL_SCALE_FACTOR);
-        glUniform1i(bacteria_u_bacteriaType_loc, static_cast<int>(type)); 
-        glUniform1f(bacteria_u_bacteriaHealth_loc, bacteria.getHealth()); 
-        glUniform1f(bacteria_u_time_loc, static_cast<float>(glfwGetTime()));
-
-        // Uniformy oświetlenia
-        glUniform3fv(bacteria_u_lightPositionWorld_loc, 1, glm::value_ptr(lightPosWorld));
-        glUniform3fv(bacteria_u_lightColor_loc, 1, glm::value_ptr(lightColor));
-        glUniform3fv(bacteria_u_ambientColor_loc, 1, glm::value_ptr(ambientColor));
-        
-        glm::vec3 cameraPosWorld(viewProjectionMatrix[3][0], viewProjectionMatrix[3][1], 100.0f); 
-        glUniform3fv(bacteria_u_cameraPositionWorld_loc, 1, glm::value_ptr(cameraPosWorld));
-        glUniform1f(bacteria_u_lightRange_loc, lightRange);
-
-        // Renderowanie geometrii bakterii
-        auto vao_it = bacteriaVAOs.find(type);
-        if (vao_it != bacteriaVAOs.end() && bacteriaVertexCounts.count(type) && bacteriaVertexCounts.at(type) > 0) {
-            glBindVertexArray(vao_it->second);
-            glDrawArrays(GL_TRIANGLE_FAN, 0, bacteriaVertexCounts.at(type));
-            glBindVertexArray(0);
-        }
-
-    shaderManager.useShaderProgram(0); 
-}
-
-// Renderowanie całej kolonii bakterii
-void Renderer::renderColony(const std::vector<std::unique_ptr<IBacteria>>& allBacteria, float zoomLevel, const glm::mat4& viewProjectionMatrix) {
-    for (auto it = allBacteria.rbegin(); it != allBacteria.rend(); ++it) {
-        const std::unique_ptr<IBacteria>& bacteriaPtr = *it;
-        if (bacteriaPtr) { 
-            renderBacteria(*bacteriaPtr, zoomLevel, viewProjectionMatrix);
-        }
-    }
 }
 
 // Dodawanie efektu antybiotyku
@@ -398,32 +368,7 @@ void Renderer::setupAntibioticGeometry() {
     glBindVertexArray(0);
 }
 
-
-void Renderer::setupMeshGeometry(const char* modelPath, GLuint& vao, GLuint& vbo, size_t& vertexCount) {
-    std::vector<Vertex> vertices;
-    if (!loadOBJ(modelPath, vertices) || vertices.empty()) {
-        std::cerr << "Renderer: Nie udało się załadować modelu lub model jest pusty: " << modelPath << std::endl;
-        vao = 0; vbo = 0; vertexCount = 0;
-        return;
-    }
-    vertexCount = vertices.size();
-
-    glGenVertexArrays(1, &vao);
-    glGenBuffers(1, &vbo);
-
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Position));
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
-    std::cout << "INFO::Renderer: Załadowano model " << modelPath << " (" << vertexCount << " wierzchołków)" << std::endl;
-}
-
+// Inicjalizacja shadera dla wzsystkich elementów szalki
 void Renderer::initPetriDishShader() {
     petriDishShaderProgramID = shaderManager.loadShaderProgram("petriDishShader", "shaders/petridish.vert", "shaders/petridish.frag");
     if (petriDishShaderProgramID == 0) {
@@ -441,24 +386,29 @@ void Renderer::initPetriDishShader() {
     petri_u_ambientColor_loc = shaderManager.getUniformLocation(petriDishShaderProgramID, "u_ambientColor");
     petri_u_cameraPositionWorld_loc = shaderManager.getUniformLocation(petriDishShaderProgramID, "u_cameraPositionWorld");
     petri_u_lightRange_loc = shaderManager.getUniformLocation(petriDishShaderProgramID, "u_lightRange");
+    petri_u_textureSampler_loc = shaderManager.getUniformLocation(petriDishShaderProgramID, "uTextureSampler");
+
 }
 
+// Przekazanie geometrii  obiektów z Blendera do VAO i VBO
 void Renderer::setupPetriDishGeometry() {
     setupMeshGeometry("assets/models/szalka.obj", dishBaseVAO, dishBaseVBO, dishBaseVertexCount);
     setupMeshGeometry("assets/models/przykrywka.obj", dishLidVAO, dishLidVBO, dishLidVertexCount);
     setupMeshGeometry("assets/models/agar.obj", agarVAO, agarVBO, agarVertexCount);
 }
 
+// Renderowanie szalki: przekazanie uniformów do shadera, kolor, oteksturowanie, transparentnosc
 void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm::mat4& viewMatrix) {
     if (petriDishShaderProgramID == 0) return;
 
     shaderManager.useShaderProgram(petriDishShaderProgramID);
 
     // Uniformy dla wszystkich części szalki 
+    glm::vec3 cameraPosForShader = glm::vec3(glm::inverse(viewMatrix)[3]);
+
     glUniform3fv(petri_u_lightPosWorld_loc, 1, glm::value_ptr(lightPosWorld));
     glUniform3fv(petri_u_lightColor_loc, 1, glm::value_ptr(lightColor));
     glUniform3fv(petri_u_ambientColor_loc, 1, glm::value_ptr(ambientColor));
-    glm::vec3 cameraPosForShader = glm::vec3(glm::inverse(viewMatrix)[3]);
     glUniform3fv(petri_u_cameraPositionWorld_loc, 1, glm::value_ptr(cameraPosForShader));
     glUniform1f(petri_u_lightRange_loc, lightRange); 
     
@@ -482,7 +432,11 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
         glUniformMatrix3fv(petri_u_normalMatrix_loc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
         
         glUniform3f(petri_u_objectColor_loc, 0.85f, 0.9f, 0.95f); // Kolor szkła
-        glUniform1f(petri_u_objectAlpha_loc, 0.1);            // Alpha szkła
+        glUniform1f(petri_u_objectAlpha_loc, 0.15);            // Alpha szkła
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, 0); 
+        glUniform1i(petri_u_textureSampler_loc, 0);
 
         glBindVertexArray(dishBaseVAO);
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(dishBaseVertexCount));
@@ -500,8 +454,12 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
         glUniformMatrix4fv(petri_u_modelMatrix_loc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
         glUniformMatrix3fv(petri_u_normalMatrix_loc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
 
-        glUniform3f(petri_u_objectColor_loc, 0.8f, 0.15f, 0.15f); // Kolor agaru
-        glUniform1f(petri_u_objectAlpha_loc, 0.7f);             // Alpha agaru
+        glUniform3f(petri_u_objectColor_loc, 1.0f, 1.0f, 1.0f);
+        glUniform1f(petri_u_objectAlpha_loc, 0.9f); 
+
+        glActiveTexture(GL_TEXTURE0); 
+        glBindTexture(GL_TEXTURE_2D, agarTextureID);
+        glUniform1i(petri_u_textureSampler_loc, 0); 
 
         glBindVertexArray(agarVAO);
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(agarVertexCount));
@@ -518,8 +476,12 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
         glUniformMatrix3fv(petri_u_normalMatrix_loc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
 
         glUniform3f(petri_u_objectColor_loc, 0.85f, 0.9f, 0.95f); // Kolor szkła
-        glUniform1f(petri_u_objectAlpha_loc, 0.05f);            // Alpha szkła
+        glUniform1f(petri_u_objectAlpha_loc, 0.15f);            // Alpha szkła
         
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, 0); 
+        glUniform1i(petri_u_textureSampler_loc, 0);
+
         glBindVertexArray(dishLidVAO);
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(dishLidVertexCount));
     }
@@ -530,4 +492,34 @@ void Renderer::renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm:
     glDisable(GL_BLEND);   
     glBindVertexArray(0);
     shaderManager.useShaderProgram(0);
+}
+
+// Ustalanie siatki modelu
+void Renderer::setupMeshGeometry(const char* modelPath, GLuint& vao, GLuint& vbo, size_t& vertexCount) {
+    std::vector<Vertex> vertices;
+    if (!modelLoader.loadOBJ(modelPath, vertices) || vertices.empty()) {
+        std::cerr << "Renderer: Nie udało się załadować modelu lub model jest pusty: " << modelPath << std::endl;
+        vao = 0; vbo = 0; vertexCount = 0;
+        return;
+    }
+    vertexCount = vertices.size();
+
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Position));
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
+    glEnableVertexAttribArray(2);
+
+    glBindVertexArray(0);
+    std::cout << "INFO::Renderer: Załadowano model " << modelPath << " (" << vertexCount << " wierzchołków)" << std::endl;
 }

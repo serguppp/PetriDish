@@ -17,6 +17,7 @@
 #include "Simulation/BacteriaStatsProvider.h" 
 #include "Simulation/BacteriaStats.h" 
 #include "ModelLoader.h"
+#include "TextureLoader.h"
 
 class Renderer {
 private:
@@ -25,6 +26,8 @@ private:
 
     GLFWwindow* window;
     ShaderManager shaderManager;
+    ModelLoader modelLoader;
+
     int windowWidth;
     int windowHeight;
     bool successfullyInitialized; 
@@ -33,7 +36,6 @@ private:
 
     // ID programów shaderowych
     GLuint bacteriaShaderProgramID;
-    GLuint pointShaderProgramID;
     GLuint antibioticShaderProgramID;
 
     // Lokalizacje uniformów dla shadera bakterii (widok mikro)
@@ -51,12 +53,6 @@ private:
     GLint bacteria_u_cameraPositionWorld_loc; 
     GLint bacteria_u_lightRange_loc;
 
-    // Lokalizacje uniformów dla shadera punktów (widok makro)
-    GLint point_u_modelMatrix_loc;
-    GLint point_u_viewProjectionMatrix_loc;
-    GLint point_u_renderPointSize_loc;
-    GLint point_u_pointColor_loc;
-
     // Lokalizacje uniformów dla shadera antybiotyków
     GLint antibiotic_u_modelMatrix_loc;
     GLint antibiotic_u_viewProjectionMatrix_loc;
@@ -68,7 +64,6 @@ private:
     std::map<BacteriaType, int> bacteriaVertexCounts; 
 
     // Geometria dla punktów (widok makro) i antybiotyków
-    GLuint pointVAO, pointVBO_vertexPosition; 
     GLuint antibioticCircleVAO, antibioticCircleVBO_vertexPosition; 
     int antibioticCircleVertexCount;
 
@@ -84,6 +79,7 @@ private:
     GLint petri_u_ambientColor_loc;
     GLint petri_u_cameraPositionWorld_loc;
     GLint petri_u_lightRange_loc;
+    GLint petri_u_textureSampler_loc; 
 
     // Geometria dla poszczególnych części szalki
     GLuint dishBaseVAO, dishBaseVBO;
@@ -94,13 +90,13 @@ private:
 
     GLuint agarVAO, agarVBO;
     size_t agarVertexCount;
+    GLuint agarTextureID;
 
     // Właściwości światła
     glm::vec3 lightPosWorld;
     glm::vec3 lightColor;
     glm::vec3 ambientColor;
     float lightRange; 
-    float lightIntensity; 
 
 public:
     Renderer(int width, int height);
@@ -115,12 +111,9 @@ public:
     // *** Bakterie ***
     void renderBacteria(IBacteria& bacteria, float zoomLevel, const glm::mat4& viewProjectionMatrix);
     void renderColony(const std::vector<std::unique_ptr<IBacteria>>& allBacteria, float zoomLevel, const glm::mat4& viewProjectionMatrix);
-    
-    void initPointShader();
-    void setupPointGeometry();
 
-    void setupBacteriaGeometry();
     void initBacteriaShader();
+    void setupBacteriaGeometry();
 
     // *******************
     // *** Antybiotyki ***/
@@ -147,4 +140,5 @@ public:
     void renderPetriDish(const glm::mat4& viewProjectionMatrix, const glm::mat4& viewMatrix);
 
     void setupMeshGeometry(const char* modelPath, GLuint& vao, GLuint& vbo, size_t& vertexCount);
+
 };

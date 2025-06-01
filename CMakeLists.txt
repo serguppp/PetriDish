@@ -13,6 +13,8 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/external/glew/include
     ${CMAKE_SOURCE_DIR}/external/imgui 
     ${CMAKE_SOURCE_DIR}/external/imgui/backends
+    ${CMAKE_SOURCE_DIR}/external/stb
+
 )
 
 link_directories(${CMAKE_SOURCE_DIR}/external/glew/lib/Release/Win32)
@@ -121,6 +123,14 @@ add_custom_command(TARGET PetriDish POST_BUILD
         "${OUTPUT_MODEL_DIR}/agar.obj"
     COMMENT "Copying agar.obj"
 )
+
+add_custom_command(TARGET PetriDish POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${TEXTURE_DIR_SRC}/Leather024_1K-JPG_Color.jpg"
+        "${OUTPUT_TEXTURE_DIR}/Leather024_1K-JPG_Color.jpg"
+    COMMENT "Copying Leather024_1K-JPG_Color.jpg"
+)
+
 set(GLEW_DLL_PATH "${CMAKE_SOURCE_DIR}/external/glew/bin/Release/Win32/glew32.dll")
 
 if(EXISTS "${GLEW_DLL_PATH}")

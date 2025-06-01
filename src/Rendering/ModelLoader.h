@@ -1,6 +1,10 @@
-#include <vector>
-#include <string>
+#pragma once
 #include "glm/glm.hpp"
+#include <GL/glew.h>
+#include <string>
+#include <map>
+#include <vector> 
+#include <iostream>
 
 struct Vertex {
     glm::vec3 Position;
@@ -8,4 +12,7 @@ struct Vertex {
     glm::vec2 TexCoords;
 };
 
-bool loadOBJ(const char* path, std::vector<Vertex>& out_vertices);
+class ModelLoader {
+public:
+    bool loadOBJ(const char* path, std::vector<Vertex>& out_vertices);
+};
